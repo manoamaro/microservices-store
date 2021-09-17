@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"os"
+
+	"manoamaro.github.com/products_service/internal"
+)
 
 func main() {
-	fmt.Println("HELLO WORLD")
+	mongoDBClient := internal.ConnectMongoDB(os.Getenv("MONGO_URL"))
+	defer mongoDBClient.Disconnect(nil)
+
+	internal.StartMQ(os.Getenv("AMQP_URL"))
 }

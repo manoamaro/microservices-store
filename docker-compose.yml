@@ -1,11 +1,12 @@
+version: "3.9"
 
 services:
   mongo:
     image: mongo
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
 
   vault:
     image: vault
@@ -17,3 +18,18 @@ services:
     image: rabbitmq:3-management-alpine
     ports:
         - 15672:15672
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:15672"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
+
+  products_service:
+    build: ./products_service
+    depends_on:
+      - rabbitmq
+      - mongo
+    restart: on-failure
+    environment: 
+      MONGO_URL: mongodb://admin:admin@mongo:27017
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/
