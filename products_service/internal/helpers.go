@@ -2,8 +2,8 @@ package internal
 
 import "log"
 
-func FailOnError(err error, msg string) {
+func FailOnError(err error) {
 	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
+		log.Fatalf("%s")
 	}
 }

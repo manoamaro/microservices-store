@@ -23,9 +23,9 @@ const DATABASE string = "products"
 func ConnectMongoDB(url string) *mongo.Client {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.NewClient(options.Client().ApplyURI(url))
-	FailOnError(err, "")
+	FailOnError(err)
 	err = client.Connect(ctx)
-	FailOnError(err, "")
+	FailOnError(err)
 	DB = &MongoDB{client: client, ctx: ctx}
 	return client
 }
