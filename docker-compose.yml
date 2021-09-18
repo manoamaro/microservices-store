@@ -16,8 +16,6 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    ports:
-        - 15672:15672
     healthcheck:
         test: ["CMD", "curl", "-f", "http://localhost:15672"]
         interval: 30s
@@ -30,6 +28,8 @@ services:
       - rabbitmq
       - mongo
     restart: on-failure
+    ports: 
+      - 8080:8080
     environment: 
       MONGO_URL: mongodb://admin:admin@mongo:27017
       AMQP_URL: amqp://guest:guest@rabbitmq:5672/

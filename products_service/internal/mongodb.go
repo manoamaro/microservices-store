@@ -2,7 +2,6 @@ package internal
 
 import (
 	"context"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,7 +20,7 @@ var DB *MongoDB
 const DATABASE string = "products"
 
 func ConnectMongoDB(url string) *mongo.Client {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx := context.Background()
 	client, err := mongo.NewClient(options.Client().ApplyURI(url))
 	FailOnError(err)
 	err = client.Connect(ctx)
@@ -57,6 +56,14 @@ func (db *MongoDB) InsertProduct(product models.Product) (*models.Product, error
 	return &product, nil
 }
 
+func (db *MongoDB) UpdateProduct(id primitive.ObjectID, product models.Product) (bool, error) {
+	res, err := db.collection(models.PRODUCTS_COLLECTION).UpdateOne(db.ctx, bson.M{"_id": id}, product)
+	if err != nil {
+		return false, err
+	}
+	return res.ModifiedCount > 0, nil
+}
+
 func (db *MongoDB) FetchProduct(id primitive.ObjectID) (*models.Product, error) {
 	res := db.collection(models.PRODUCTS_COLLECTION).FindOne(db.ctx, bson.M{"_id": id})
 	result := &models.Product{}
@@ -65,4 +72,13 @@ func (db *MongoDB) FetchProduct(id primitive.ObjectID) (*models.Product, error) 
 		return nil, err
 	}
 	return result, nil
+}
+
+func (db *MongoDB) DeleteProduct(id primitive.ObjectID) (bool, error) {
+	res, err := db.collection(models.PRODUCTS_COLLECTION).DeleteOne(db.ctx, bson.M{"_id": id})
+	if err != nil {
+		return false, err
+	}
+
+	return res.DeletedCount > 0, nil
 }
