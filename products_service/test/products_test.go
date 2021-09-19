@@ -7,10 +7,19 @@ import (
 	"manoamaro.github.com/products_service/internal/models"
 )
 
+func exists(arr []models.Product, f func(models.Product) bool) bool {
+	for _, v := range arr {
+		if f(v) {
+			return true
+		}
+	}
+	return false
+}
+
 func TestProductList(t *testing.T) {
 	internal.ConnectMongoDB("mongodb://127.0.0.1:27017")
 
-	internal.DB.InsertProduct(models.Product{
+	newProduct, err := internal.DB.InsertProduct(models.Product{
 		Name:        "TEST1",
 		Description: "TEST TEST",
 		Images:      []string{"TESTING1URL"},
@@ -29,16 +38,23 @@ func TestProductList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if products[0].Name != "TEST1" {
-		t.Error("Name not persisted")
+	if !exists(products, func(i models.Product) bool { return i.Id == newProduct.Id }) {
+		t.Error("ID of new Product not found in List")
 	}
 
-	product, err := internal.DB.FetchProduct(products[0].Id)
+	product, err := internal.DB.FetchProduct(newProduct.Id)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if product.Name != "TEST1" {
 		t.Error("Name not persisted")
+	}
+
+	product.Deleted = true
+	product.Name = "UPDATED"
+
+	if updated, err := internal.DB.UpdateProduct(product.Id, *product); err != nil || !updated {
+		t.Error("Not updated", err)
 	}
 }

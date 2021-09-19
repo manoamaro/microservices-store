@@ -29,56 +29,57 @@ func ConnectMongoDB(url string) *mongo.Client {
 	return client
 }
 
-func (db *MongoDB) collection(name string) *mongo.Collection {
-	return db.client.Database(DATABASE).Collection(name)
+func DisconnectMongoDB() error {
+	return DB.client.Disconnect(DB.ctx)
+}
+
+func (db *MongoDB) collection() *mongo.Collection {
+	return db.client.Database(DATABASE).Collection(models.PRODUCTS_COLLECTION)
 }
 
 func (db *MongoDB) ListProducts() ([]models.Product, error) {
-	cur, err := db.collection(models.PRODUCTS_COLLECTION).Find(db.ctx, bson.D{})
-	if err != nil {
+	if cur, err := db.collection().Find(db.ctx, bson.D{}); err != nil {
 		return nil, err
+	} else {
+		var result []models.Product
+		if err = cur.All(db.ctx, &result); err != nil {
+			return nil, err
+		}
+		return result, nil
 	}
-	var result []models.Product
-	err = cur.All(db.ctx, &result)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 func (db *MongoDB) InsertProduct(product models.Product) (*models.Product, error) {
-	res, err := db.collection(models.PRODUCTS_COLLECTION).InsertOne(db.ctx, product)
-	if err != nil {
+	if res, err := db.collection().InsertOne(db.ctx, product); err != nil {
 		return nil, err
+	} else {
+		product.Id = res.InsertedID.(primitive.ObjectID)
+		return &product, nil
 	}
-
-	product.Id = res.InsertedID.(primitive.ObjectID)
-	return &product, nil
 }
 
 func (db *MongoDB) UpdateProduct(id primitive.ObjectID, product models.Product) (bool, error) {
-	res, err := db.collection(models.PRODUCTS_COLLECTION).UpdateOne(db.ctx, bson.M{"_id": id}, product)
-	if err != nil {
+	if res, err := db.collection().ReplaceOne(db.ctx, bson.M{"_id": id}, product); err != nil {
 		return false, err
+	} else {
+		return res.ModifiedCount > 0, nil
 	}
-	return res.ModifiedCount > 0, nil
 }
 
 func (db *MongoDB) FetchProduct(id primitive.ObjectID) (*models.Product, error) {
-	res := db.collection(models.PRODUCTS_COLLECTION).FindOne(db.ctx, bson.M{"_id": id})
+	res := db.collection().FindOne(db.ctx, bson.M{"_id": id})
 	result := &models.Product{}
-	err := res.Decode(result)
-	if err != nil {
+	if err := res.Decode(result); err != nil {
 		return nil, err
+	} else {
+		return result, nil
 	}
-	return result, nil
 }
 
 func (db *MongoDB) DeleteProduct(id primitive.ObjectID) (bool, error) {
-	res, err := db.collection(models.PRODUCTS_COLLECTION).DeleteOne(db.ctx, bson.M{"_id": id})
-	if err != nil {
+	if res, err := db.collection().DeleteOne(db.ctx, bson.M{"_id": id}); err != nil {
 		return false, err
+	} else {
+		return res.DeletedCount > 0, nil
 	}
-
-	return res.DeletedCount > 0, nil
 }

@@ -15,11 +15,16 @@ import (
 )
 
 func main() {
-	mongoDBClient := internal.ConnectMongoDB(os.Getenv("MONGO_URL"))
-	defer mongoDBClient.Disconnect(nil)
 	internal.StartMQ(os.Getenv("AMQP_URL"))
+	internal.ConnectMongoDB(os.Getenv("MONGO_URL"))
+	defer func() {
+		if err := internal.DisconnectMongoDB(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	r := mux.NewRouter()
+	r.StrictSlash(true)
 	s := r.PathPrefix("/products").Subrouter()
 	s.Use(contentTypeMiddleware)
 
@@ -42,150 +47,86 @@ func main() {
 	internal.FailOnError(err)
 }
 
+func handleError(err error, w http.ResponseWriter, r *http.Request) {
+	log.Println(err)
+	w.WriteHeader(http.StatusBadRequest)
+}
+
 func ListProductsHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	products, err := internal.DB.ListProducts()
-
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	bytes, err := json.Marshal(&products)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	_, err = w.Write(bytes)
-	if err != nil {
-		log.Println(err)
+	if products, err := internal.DB.ListProducts(); err != nil {
+		handleError(err, w, r)
+	} else if bytes, err := json.Marshal(&products); err != nil {
+		handleError(err, w, r)
+	} else if _, err = w.Write(bytes); err != nil {
+		handleError(err, w, r)
 	}
 }
 
 func PostProductsHandler(w http.ResponseWriter, r *http.Request) {
-	bytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	if bytes, err := ioutil.ReadAll(r.Body); err != nil {
+		handleError(err, w, r)
+	} else {
+		newProduct := models.Product{}
+		if err = json.Unmarshal(bytes, &newProduct); err != nil {
+			handleError(err, w, r)
+		} else if savedProduct, err := internal.DB.InsertProduct(newProduct); err != nil {
+			handleError(err, w, r)
+		} else if bytes, err = json.Marshal(&savedProduct); err != nil {
+			handleError(err, w, r)
+		} else if _, err := w.Write(bytes); err != nil {
+			handleError(err, w, r)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
 	}
-	newProduct := models.Product{}
-
-	err = json.Unmarshal(bytes, &newProduct)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	savedProduct, err := internal.DB.InsertProduct(newProduct)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	bytes, err = json.Marshal(&savedProduct)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(bytes)
 }
 
 func GetProductsHandler(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	objId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	if objId, err := primitive.ObjectIDFromHex(id); err != nil {
+		handleError(err, w, r)
+	} else if product, err := internal.DB.FetchProduct(objId); err != nil {
+		handleError(err, w, r)
+	} else if bytes, err := json.Marshal(product); err != nil {
+		handleError(err, w, r)
+	} else if _, err := w.Write(bytes); err != nil {
+		handleError(err, w, r)
+	} else {
+		w.WriteHeader(http.StatusOK)
 	}
-
-	product, err := internal.DB.FetchProduct(objId)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	bytes, err := json.Marshal(product)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	_, err = w.Write(bytes)
 }
 
 func UpdateProductsHandler(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	objId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	bytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		log.Println(err)
-		return
-	}
-
-	product := models.Product{}
-	err = json.Unmarshal(bytes, &product)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		log.Println(err)
-		return
-	}
-
-	updated, err := internal.DB.UpdateProduct(objId, product)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		log.Println(err)
-		return
-	}
-
-	if updated {
-		w.WriteHeader(http.StatusOK)
+	if objId, err := primitive.ObjectIDFromHex(id); err != nil {
+		handleError(err, w, r)
+	} else if bytes, err := ioutil.ReadAll(r.Body); err != nil {
+		handleError(err, w, r)
 	} else {
-		w.WriteHeader(http.StatusNotFound)
+		product := models.Product{}
+		if err = json.Unmarshal(bytes, &product); err != nil {
+			handleError(err, w, r)
+		} else if updated, err := internal.DB.UpdateProduct(objId, product); err != nil {
+			handleError(err, w, r)
+		} else if !updated {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
 	}
-
 }
 
 func DeleteProductsHandler(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	objId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	deleted, err := internal.DB.DeleteProduct(objId)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if deleted {
-		w.WriteHeader(http.StatusOK)
-	} else {
+	if objId, err := primitive.ObjectIDFromHex(id); err != nil {
+		handleError(err, w, r)
+	} else if deleted, err := internal.DB.DeleteProduct(objId); err != nil {
+		handleError(err, w, r)
+	} else if !deleted {
 		w.WriteHeader(http.StatusNotFound)
+	} else {
+		w.WriteHeader(http.StatusOK)
 	}
-
 }
 
 func contentTypeMiddleware(next http.Handler) http.Handler {
