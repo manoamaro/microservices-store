@@ -1,3 +1,3 @@
 module manoamaro.github.com/template_service
 
-go 1.15
+go 1.17
