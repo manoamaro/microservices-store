@@ -1,11 +1,10 @@
-module manoamaro.github.com/products_service
+module manoamaro.github.com/auth_service
 
 go 1.17
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/gorilla/mux v1.8.0
-	github.com/streadway/amqp v1.0.0
 	go.mongodb.org/mongo-driver v1.7.2
 )
 

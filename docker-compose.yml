@@ -1,6 +1,13 @@
 version: "3.9"
 
 services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
   mongo:
     image: mongo
     restart: always
@@ -22,14 +29,27 @@ services:
         timeout: 10s
         retries: 5
 
+  memcached:
+    image: memcached
+
+  auth_service:
+    build: ./auth_service
+    restart: on-failure
+    depends_on:
+      - mongo
+    environment:
+      VIRTUAL_HOST: auth.local
+      MONGO_URL: mongodb://admin:admin@mongo:27017
+
   products_service:
     build: ./products_service
     depends_on:
       - rabbitmq
       - mongo
     restart: on-failure
-    ports: 
-      - 8080:8080
-    environment: 
+    environment:
+      VIRTUAL_HOST: products.local 
       MONGO_URL: mongodb://admin:admin@mongo:27017
       AMQP_URL: amqp://guest:guest@rabbitmq:5672/
+
+
