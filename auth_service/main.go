@@ -2,24 +2,25 @@ package main
 
 import (
 	"context"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/golang-jwt/jwt/v4/request"
-	"github.com/gorilla/mux"
 	"log"
-	"manoamaro.github.com/auth_service/internal"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v4/request"
+	"github.com/gorilla/mux"
+	"manoamaro.github.com/auth_service/internal"
 )
 
 func main() {
+
 	internal.ConnectMongoDB(os.Getenv("MONGO_URL"))
 	defer func() {
 		if err := internal.DisconnectMongoDB(); err != nil {
 			log.Println(err)
 		}
 	}()
-
 
 	r := mux.NewRouter()
 	r.StrictSlash(true)
@@ -31,6 +32,7 @@ func main() {
 	s.Path("/").Methods("PUT").HandlerFunc(updateProfileHandler)
 	s.Path("/").Methods("DELETE").HandlerFunc(deleteProfileHandler)
 
+
 	srv := &http.Server{
 		Addr: "0.0.0.0:8080",
 		// Good practice to set timeouts to avoid Slowloris attacks.
@@ -40,12 +42,13 @@ func main() {
 		Handler:      r, // Pass our instance of gorilla/mux in.
 	}
 
-	err := srv.ListenAndServe()
-	internal.FailOnError(err)
+	if err := srv.ListenAndServe(); err != nil {
+		internal.FailOnError(err)
+	}
 }
 
 type UserInfo struct {
-	Email string
+	Email  string
 	Access []string
 }
 
@@ -54,11 +57,11 @@ type UserClaims struct {
 	UserInfo
 }
 
-var loginHandler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+var loginHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
 		&jwt.StandardClaims{
-			Id: "1",
-			ExpiresAt:  time.Now().Add(time.Hour * 168).Unix(),
+			Id:        "1",
+			ExpiresAt: time.Now().Add(time.Hour * 168).Unix(),
 		},
 		UserInfo{
 			Email:  "example@email.com",
@@ -68,27 +71,26 @@ var loginHandler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request
 	if signedString, err := token.SignedString([]byte("My Secret")); err != nil {
 		handleError(err, w, r)
 	} else {
-		w.Header().Add("Authorization", "bearer " + signedString)
+		w.Header().Add("Authorization", "bearer "+signedString)
 		w.WriteHeader(http.StatusOK)
 	}
 })
 
-var signupHandler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+var signupHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 })
 
-var getProfileHandler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+var getProfileHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 })
 
-var updateProfileHandler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+var updateProfileHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 })
 
-var deleteProfileHandler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+var deleteProfileHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 })
-
 
 func keyFunc(token *jwt.Token) (interface{}, error) {
 	return []byte("My Secret"), nil

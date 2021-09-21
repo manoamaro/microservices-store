@@ -1,12 +1,14 @@
 version: "3.9"
 
 services:
-  nginx-proxy:
-    image: jwilder/nginx-proxy
+  gateway:
+    build: ./gateway
     ports:
       - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      CONSUL_URL: consul:8500
 
   mongo:
     image: mongo
@@ -32,24 +34,24 @@ services:
   memcached:
     image: memcached
 
-  auth_service:
+  auth:
     build: ./auth_service
     restart: on-failure
     depends_on:
       - mongo
+      - consul
     environment:
-      VIRTUAL_HOST: auth.local
       MONGO_URL: mongodb://admin:admin@mongo:27017
+      CONSUL_URL: consul:8500
 
-  products_service:
+  products:
     build: ./products_service
     depends_on:
       - rabbitmq
       - mongo
+      - consul
     restart: on-failure
     environment:
-      VIRTUAL_HOST: products.local 
       MONGO_URL: mongodb://admin:admin@mongo:27017
-      AMQP_URL: amqp://guest:guest@rabbitmq:5672/
-
+      CONSUL_URL: consul:8500
 
