@@ -42,7 +42,7 @@ func main() {
 	s.Path("/login").Methods("POST").HandlerFunc(loginHandler)
 	s.Path("/signup").Methods("POST").HandlerFunc(signupHandler)
 	s.Path("/logout").Methods("POST").HandlerFunc(signupHandler)
-	s.Path("/").Methods("GET").Handler(authenticateMiddleware(getProfileHandler))
+	s.Path("/").Methods("GET").Handler(getProfileHandler)
 	s.Path("/").Methods("PUT").HandlerFunc(updateProfileHandler)
 	s.Path("/").Methods("DELETE").HandlerFunc(deleteProfileHandler)
 
@@ -135,16 +135,13 @@ func jwtMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func authenticateMiddleware(next http.Handler) http.Handler {
+func authenticateMiddleware(next http.Handler, requiredRole string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := r.Context().Value("user")
-		if user != nil {
-			userValues := user.(*jwt.Token).Claims.(jwt.MapClaims)
-			if userValues != nil {
-				access := userValues["access"].([]interface{})
-				if access != nil {
+		if user := r.Context().Value("user"); user != nil {
+			if userValues := user.(*jwt.Token).Claims.(jwt.MapClaims); userValues != nil {
+				if access := userValues["access"].([]interface{}); access != nil {
 					for _, v := range access {
-						if v.(string) == "users" {
+						if v.(string) == requiredRole {
 							next.ServeHTTP(w, r)
 							return
 						}
