@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
 	"log"
+	"manoamaro.github.com/auth_service/models"
 	"net/http"
 	"os"
 	"time"
@@ -13,11 +16,21 @@ import (
 	"manoamaro.github.com/auth_service/internal"
 )
 
+func getMongoDBUrl() string {
+	if value, exists := os.LookupEnv("MONGO_URL"); exists {
+		return value
+	}
+	return "mongodb://localhost:27017"
+}
+
+var db *internal.MongoDB
+
 func main() {
 
-	internal.ConnectMongoDB(os.Getenv("MONGO_URL"))
+	db = internal.ConnectMongoDB(getMongoDBUrl())
+
 	defer func() {
-		if err := internal.DisconnectMongoDB(); err != nil {
+		if err := db.DisconnectMongoDB(); err != nil {
 			log.Println(err)
 		}
 	}()
@@ -28,10 +41,10 @@ func main() {
 	s := r.PathPrefix("/users").Subrouter()
 	s.Path("/login").Methods("POST").HandlerFunc(loginHandler)
 	s.Path("/signup").Methods("POST").HandlerFunc(signupHandler)
+	s.Path("/logout").Methods("POST").HandlerFunc(signupHandler)
 	s.Path("/").Methods("GET").Handler(authenticateMiddleware(getProfileHandler))
 	s.Path("/").Methods("PUT").HandlerFunc(updateProfileHandler)
 	s.Path("/").Methods("DELETE").HandlerFunc(deleteProfileHandler)
-
 
 	srv := &http.Server{
 		Addr: "0.0.0.0:8080",
@@ -47,37 +60,53 @@ func main() {
 	}
 }
 
-type UserInfo struct {
-	Email  string
-	Access []string
-}
-
-type UserClaims struct {
-	*jwt.StandardClaims
-	UserInfo
-}
-
 var loginHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
-		&jwt.StandardClaims{
-			Id:        "1",
-			ExpiresAt: time.Now().Add(time.Hour * 168).Unix(),
-		},
-		UserInfo{
-			Email:  "example@email.com",
-			Access: []string{""},
-		},
-	})
-	if signedString, err := token.SignedString([]byte("My Secret")); err != nil {
+	if body, err := ioutil.ReadAll(r.Body); err != nil {
 		handleError(err, w, r)
 	} else {
-		w.Header().Add("Authorization", "bearer "+signedString)
-		w.WriteHeader(http.StatusOK)
+		request := &struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}{}
+		if err := json.Unmarshal(body, request); err != nil {
+			handleError(err, w, r)
+		} else if user, err := db.LoginUser(request.Email, request.Password); err != nil {
+			handleError(err, w, r)
+		} else if signedString, err := internal.GetTokenSigned(user.Id.Hex(), user.Email); err != nil {
+			handleError(err, w, r)
+		} else if response, err := json.Marshal(user); err != nil {
+			handleError(err, w, r)
+		} else {
+			w.Header().Add("Authorization", "bearer "+signedString)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(response)
+		}
 	}
 })
 
 var signupHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+	if body, err := ioutil.ReadAll(r.Body); err != nil {
+		handleError(err, w, r)
+	} else {
+		request := &struct {
+			Name     string `json:"name"`
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}{}
+		if err := json.Unmarshal(body, request); err != nil {
+			handleError(err, w, r)
+		} else if user, err := db.CreateUser(models.User{FullName: request.Name, Email: request.Email}, request.Password); err != nil {
+			handleError(err, w, r)
+		} else if signedString, err := internal.GetTokenSigned(user.Id.Hex(), user.Email); err != nil {
+			handleError(err, w, r)
+		} else if response, err := json.Marshal(user); err != nil {
+			handleError(err, w, r)
+		} else {
+			w.Header().Add("Authorization", "bearer "+signedString)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(response)
+		}
+	}
 })
 
 var getProfileHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,8 +121,8 @@ var deleteProfileHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.
 
 })
 
-func keyFunc(token *jwt.Token) (interface{}, error) {
-	return []byte("My Secret"), nil
+func keyFunc(_ *jwt.Token) (interface{}, error) {
+	return internal.GetJWTSecret(), nil
 }
 
 func jwtMiddleware(next http.Handler) http.Handler {
