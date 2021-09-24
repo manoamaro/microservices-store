@@ -1,18 +1,8 @@
-module manoamaro.github.com/products_service
+module manoamaro.github.com/mongodb
 
 go 1.17
 
-replace (
-	manoamaro.github.com/mongodb => ../mongodb
-)
-
-require (
-	github.com/golang-jwt/jwt/v4 v4.0.0
-	github.com/gorilla/mux v1.8.0
-	github.com/streadway/amqp v1.0.0
-	go.mongodb.org/mongo-driver v1.7.2
-	manoamaro.github.com/mongodb v0.0.0
-)
+require go.mongodb.org/mongo-driver v1.7.2
 
 require (
 	github.com/go-stack/stack v1.8.0 // indirect

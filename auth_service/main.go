@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"manoamaro.github.com/auth_service/models"
+	"manoamaro.github.com/mongodb"
 	"net/http"
 	"os"
 	"time"
@@ -23,11 +24,13 @@ func getMongoDBUrl() string {
 	return "mongodb://localhost:27017"
 }
 
-var db *internal.MongoDB
+var db *internal.DB
 
 func main() {
 
-	db = internal.ConnectMongoDB(getMongoDBUrl())
+	db = &internal.DB{
+		MongoDB: mongodb.ConnectMongoDB(getMongoDBUrl(), internal.DATABASE),
+	}
 
 	defer func() {
 		if err := db.DisconnectMongoDB(); err != nil {

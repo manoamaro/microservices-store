@@ -2,12 +2,17 @@ module manoamaro.github.com/auth_service
 
 go 1.17
 
+replace (
+	manoamaro.github.com/mongodb => ../mongodb
+)
+
 require (
 	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/consul v1.10.2
 	github.com/hashicorp/consul/api v1.10.1
 	go.mongodb.org/mongo-driver v1.7.2
+	manoamaro.github.com/mongodb v0.0.0
 )
 
 require (
