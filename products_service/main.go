@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"manoamaro.github.com/mongodb"
+	"manoamaro.github.com/products_service/models"
 	"net/http"
 	"os"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"manoamaro.github.com/products_service/internal"
-	"manoamaro.github.com/products_service/internal/models"
 )
 
 var db *internal.DB

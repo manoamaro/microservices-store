@@ -2,10 +2,10 @@ package internal
 
 import (
 	"manoamaro.github.com/mongodb"
+	"manoamaro.github.com/products_service/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"manoamaro.github.com/products_service/internal/models"
 )
 
 type DB struct {

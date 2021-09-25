@@ -1,13 +1,13 @@
 package test
 
 import (
+	models2 "manoamaro.github.com/products_service/models"
 	"testing"
 
 	"manoamaro.github.com/products_service/internal"
-	"manoamaro.github.com/products_service/internal/models"
 )
 
-func exists(arr []models.Product, f func(models.Product) bool) bool {
+func exists(arr []models2.Product, f func(models2.Product) bool) bool {
 	for _, v := range arr {
 		if f(v) {
 			return true
@@ -19,11 +19,11 @@ func exists(arr []models.Product, f func(models.Product) bool) bool {
 func TestProductList(t *testing.T) {
 	internal.ConnectMongoDB("mongodb://127.0.0.1:27017")
 
-	newProduct, err := internal.DB.InsertProduct(models.Product{
+	newProduct, err := internal.DB.InsertProduct(models2.Product{
 		Name:        "TEST1",
 		Description: "TEST TEST",
 		Images:      []string{"TESTING1URL"},
-		Reviews: []models.Review{
+		Reviews: []models2.Review{
 			{
 				Author:  "MANOEL",
 				Rating:  3,
@@ -38,7 +38,7 @@ func TestProductList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !exists(products, func(i models.Product) bool { return i.Id == newProduct.Id }) {
+	if !exists(products, func(i models2.Product) bool { return i.Id == newProduct.Id }) {
 		t.Error("ID of new Product not found in List")
 	}
 

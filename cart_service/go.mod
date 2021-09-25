@@ -1,6 +1,14 @@
-module manoamaro.github.com/template_service
+module manoamaro.github.com/cart_service
 
 go 1.17
+
+replace (
+	manoamaro.github.com/mongodb => ../mongodb
+)
+
+require (
+	manoamaro.github.com/mongodb v0.0.0
+)
 
 require (
 	github.com/Microsoft/go-winio v0.5.0 // indirect
