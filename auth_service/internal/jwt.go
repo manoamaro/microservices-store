@@ -13,26 +13,30 @@ func GetJWTSecret() []byte {
 	return []byte("My Secret")
 }
 
-func GetTokenSigned(userId string, userEmail string) (string, error) {
+func GetJWTSecretFunc(_ *jwt.Token) (interface{}, error) {
+	return GetJWTSecret(), nil
+}
+
+func GetTokenSigned(authId string, roles []string, flags []string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
-		&jwt.StandardClaims{
-			Id:        userId,
-			ExpiresAt: time.Now().Add(time.Hour * 168).Unix(),
+		jwt.RegisteredClaims{
+			ID:        authId,
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 168)),
 		},
-		UserInfo{
-			Email:  userEmail,
-			Access: []string{""},
+		AuthInfo{
+			Roles: roles,
+			Flags: flags,
 		},
 	})
 	return token.SignedString(GetJWTSecret())
 }
 
-type UserInfo struct {
-	Email  string
-	Access []string
+type AuthInfo struct {
+	Roles []string
+	Flags []string
 }
 
 type UserClaims struct {
-	*jwt.StandardClaims
-	UserInfo
+	jwt.RegisteredClaims
+	AuthInfo
 }
