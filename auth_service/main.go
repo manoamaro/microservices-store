@@ -13,6 +13,7 @@ import (
 	"log"
 	"manoamaro.github.com/auth_service/models"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -23,7 +24,13 @@ import (
 var gormDB *gorm.DB
 
 func main() {
-	db, err := sql.Open("postgres", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
+	dbUrl, found := os.LookupEnv("DB_URL")
+	if !found {
+		log.Println("DB_URL not found")
+		dbUrl = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+	}
+
+	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,6 +83,7 @@ var loginHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request)
 				mapTo(auth.Flags, func(i models.Flag) string { return i.Name })); err != nil {
 				handleError(err, w, r)
 			} else {
+
 				w.Header().Add("Authorization", "bearer "+signedString)
 				w.WriteHeader(http.StatusOK)
 			}
@@ -92,9 +100,16 @@ func mapTo[I interface{}, O interface{}](i []I, f func(I) O) []O {
 }
 
 var validateHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var auth models.Auth
 	if token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor, internal.GetJWTSecretFunc, request.WithClaims(&internal.UserClaims{})); err != nil || !token.Valid {
 		w.WriteHeader(http.StatusUnauthorized)
-	} else if userValues := token.Claims.(*internal.UserClaims); userValues != nil {
+	} else if userValues := token.Claims.(*internal.UserClaims); userValues == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+	} else if userId, err := strconv.ParseUint(userValues.ID, 10, 64); err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+	} else if gormDB.Find(&auth, &models.Auth{UserId: userId}); auth.ID == 0 {
+		w.WriteHeader(http.StatusUnauthorized)
+	} else {
 		response := struct {
 			Roles []string `json:"roles"`
 			Flags []string `json:"flags"`
