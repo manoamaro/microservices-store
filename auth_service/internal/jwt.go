@@ -21,7 +21,8 @@ func GetTokenSigned(authId string, roles []string, flags []string) (string, erro
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
 		jwt.RegisteredClaims{
 			ID:        authId,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 168)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
 		},
 		AuthInfo{
 			Roles: roles,

@@ -1,19 +1,14 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/golang-jwt/jwt/v4/request"
 	_ "github.com/lib/pq"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"io/ioutil"
 	"log"
 	"manoamaro.github.com/auth_service/models"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -21,27 +16,11 @@ import (
 	"manoamaro.github.com/auth_service/internal"
 )
 
-var gormDB *gorm.DB
+var authService *internal.AuthService
 
 func main() {
-	dbUrl, found := os.LookupEnv("DB_URL")
-	if !found {
-		log.Println("DB_URL not found")
-		dbUrl = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
-	}
 
-	db, err := sql.Open("postgres", dbUrl)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	gormDB, err = gorm.Open(postgres.New(postgres.Config{
-		Conn: db,
-	}), &gorm.Config{})
-
-	if err := gormDB.AutoMigrate(&models.Flag{}, &models.Role{}, &models.Auth{}); err != nil {
-		log.Fatal(err)
-	}
+	authService = internal.NewAuthService()
 
 	r := mux.NewRouter()
 	r.StrictSlash(true)
@@ -72,21 +51,16 @@ var loginHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request)
 		}{}
 		if err := json.Unmarshal(body, request); err != nil {
 			handleError(err, w, r)
+		} else if auth, found := authService.FindAuth(request.UserId); !found {
+			handleError(errors.New("auth not found"), w, r)
+		} else if signedString, err := internal.GetTokenSigned(
+			strconv.FormatUint(auth.UserId, 10),
+			mapTo(auth.Roles, func(i models.Role) string { return i.Name }),
+			mapTo(auth.Flags, func(i models.Flag) string { return i.Name })); err != nil {
+			handleError(err, w, r)
 		} else {
-			var auth models.Auth
-			gormDB.Preload(clause.Associations).Where(&models.Auth{UserId: request.UserId}).First(&auth)
-			if auth.ID == 0 {
-				handleError(errors.New("auth not found"), w, r)
-			} else if signedString, err := internal.GetTokenSigned(
-				strconv.FormatUint(auth.UserId, 10),
-				mapTo(auth.Roles, func(i models.Role) string { return i.Name }),
-				mapTo(auth.Flags, func(i models.Flag) string { return i.Name })); err != nil {
-				handleError(err, w, r)
-			} else {
-
-				w.Header().Add("Authorization", "bearer "+signedString)
-				w.WriteHeader(http.StatusOK)
-			}
+			w.Header().Add("Authorization", "bearer "+signedString)
+			w.WriteHeader(http.StatusOK)
 		}
 	}
 })
@@ -100,14 +74,13 @@ func mapTo[I interface{}, O interface{}](i []I, f func(I) O) []O {
 }
 
 var validateHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	var auth models.Auth
 	if token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor, internal.GetJWTSecretFunc, request.WithClaims(&internal.UserClaims{})); err != nil || !token.Valid {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else if userValues := token.Claims.(*internal.UserClaims); userValues == nil {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else if userId, err := strconv.ParseUint(userValues.ID, 10, 64); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-	} else if gormDB.Find(&auth, &models.Auth{UserId: userId}); auth.ID == 0 {
+	} else if _, found := authService.FindAuth(userId); !found {
 		w.WriteHeader(http.StatusUnauthorized)
 	} else {
 		response := struct {
