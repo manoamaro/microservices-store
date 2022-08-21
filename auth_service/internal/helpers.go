@@ -19,3 +19,11 @@ func GetENV(name string, fallback string) (value string) {
 	}
 	return
 }
+
+func MapTo[I interface{}, O interface{}](i []I, f func(I) O) []O {
+	var output []O
+	for _, el := range i {
+		output = append(output, f(el))
+	}
+	return output
+}

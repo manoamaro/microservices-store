@@ -2,7 +2,7 @@ package models
 
 import "gorm.io/gorm"
 
-type Role struct {
+type Domain struct {
 	gorm.Model
-	Name string
+	Domain string
 }
