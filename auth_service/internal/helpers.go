@@ -5,12 +5,6 @@ import (
 	"os"
 )
 
-func FailOnError(err error) {
-	if err != nil {
-		log.Fatalf("%s")
-	}
-}
-
 func GetENV(name string, fallback string) (value string) {
 	value, found := os.LookupEnv(name)
 	if !found {

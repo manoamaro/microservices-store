@@ -8,19 +8,22 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
-
+    ports:
+      - "5432:5432"
   redis:
     image: redis
     restart: always
-
-  service:
-    build: ./
-    restart: on-failure
-    depends_on:
-      - postgres
-      - redis
-    environment:
-      DB_URL: "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable"
-      REDIS_URL: "redis:6379"
     ports:
-      - "8080:8080"
+      - "6379:6379"
+
+#  service:
+#    build: ./
+#    restart: on-failure
+#    depends_on:
+#      - postgres
+#      - redis
+#    environment:
+#      DB_URL: "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable"
+#      REDIS_URL: "redis:6379"
+#    ports:
+#      - "8080:8080"

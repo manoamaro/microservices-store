@@ -28,7 +28,7 @@ func main() {
 	s.Path("/validate").Methods("GET").HandlerFunc(validateHandler)
 
 	srv := &http.Server{
-		Addr:         "0.0.0.0:8080",
+		Addr:         "0.0.0.0:8081",
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
@@ -36,7 +36,7 @@ func main() {
 	}
 
 	if err := srv.ListenAndServe(); err != nil {
-		internal.FailOnError(err)
+		log.Fatal(err)
 	}
 }
 

@@ -1,9 +1,17 @@
 package internal
 
-import "log"
+import (
+	"log"
+	"os"
+)
 
-func FailOnError(err error) {
-	if err != nil {
-		log.Fatalf("%s")
+const ProductsServiceDatabase = "ProductsService"
+
+func GetEnv(name string, fallback string) (value string) {
+	value, found := os.LookupEnv(name)
+	if !found {
+		log.Printf("Env %s not found. Fallback to %s", name, fallback)
+		value = fallback
 	}
+	return
 }
