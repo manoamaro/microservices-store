@@ -5,11 +5,13 @@ ENV CGO_ENABLED=0
 RUN mkdir /app
 WORKDIR /app
 
-COPY go.* ./
+COPY commons/ /commons/
+
+COPY auth_service/go.* ./
 
 RUN go mod download
 
-COPY . .
+COPY auth_service/. .
 
 RUN go build -o ./app
 

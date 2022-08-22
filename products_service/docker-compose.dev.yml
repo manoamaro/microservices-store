@@ -23,7 +23,9 @@ services:
     restart: always
 
   auth:
-    build: ../auth_service/
+    build:
+      context: ../
+      dockerfile: ./auth_service/Dockerfile
     restart: on-failure
     depends_on:
       - postgres

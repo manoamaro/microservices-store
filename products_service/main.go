@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"manoamaro.github.com/products_service/internal"
+	"manoamaro.github.com/products_service/internal/repository"
 	"manoamaro.github.com/products_service/models"
 	"net/http"
 	"time"
@@ -10,32 +11,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var productsRepository models.ProductsRepository
+var productsRepository repository.ProductsRepository
 var authService internal.AuthService
 
 func main() {
 
-	productsRepository = models.NewProductsRepository()
-	authService = internal.NewAuthService()
+	productsRepository = repository.NewProductsRepository()
+	authService = internal.NewDefaultAuthService()
 
 	r := gin.Default()
 
-	productsGroup := r.Group("/products")
-
-	productsGroup.GET("/", ListProductsHandler)
-
-	mgmtGroup := productsGroup.Group("/mgmt")
-	mgmtGroup.Use(func(context *gin.Context) {
-		token := context.GetHeader("Authorization")
-		err, isValid := authService.Validate(token)
-		if err != nil {
-			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
-		} else if !isValid {
-			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "not authorized"})
-		}
-	})
-	mgmtGroup.GET("/list", ListProductsHandler)
-	mgmtGroup.POST("/create", PostProductsHandler)
+	publicGroup := r.Group("/public")
+	{
+		publicGroup.GET("/", ListProductsHandler)
+	}
+	mgmtGroup := r.Group("/mgmt")
+	{
+		mgmtGroup.Use(func(context *gin.Context) {
+			token := context.GetHeader("Authorization")
+			err, isValid := authService.Validate(token, []string{"products_mgmt"})
+			if err != nil {
+				context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
+			} else if !isValid {
+				context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "not authorized"})
+			}
+		})
+		mgmtGroup.GET("/list", ListProductsHandler)
+		mgmtGroup.POST("/create", PostProductsHandler)
+	}
 
 	srv := &http.Server{
 		Addr:         "0.0.0.0:8080",
@@ -47,13 +50,6 @@ func main() {
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func handleError(err error, c *gin.Context) {
-	log.Println(err)
-	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-		"status": err.Error(),
-	})
 }
 
 func ListProductsHandler(c *gin.Context) {
@@ -73,4 +69,11 @@ func PostProductsHandler(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, savedProduct)
 	}
+}
+
+func handleError(err error, c *gin.Context) {
+	log.Println(err)
+	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+		"status": err.Error(),
+	})
 }

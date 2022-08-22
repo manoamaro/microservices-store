@@ -1,31 +1,39 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
-	_ "github.com/lib/pq"
-	"io/ioutil"
+	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
 	"manoamaro.github.com/auth_service/internal"
 )
 
-var authService *internal.AuthService
+var authRepository internal.AuthRepository
 
 func main() {
 
-	authService = internal.NewAuthService()
+	authRepository = internal.NewDefaultAuthRepository()
 
-	r := mux.NewRouter()
-	r.StrictSlash(true)
-
-	s := r.PathPrefix("/auth").Subrouter()
-	s.Path("/sign_in").Methods("POST").HandlerFunc(signInHandler)
-	s.Path("/sign_up").Methods("POST").HandlerFunc(signUpHandler)
-	s.Path("/validate").Methods("GET").HandlerFunc(validateHandler)
+	r := gin.Default()
+	authRoute := r.Group("/auth")
+	{
+		authRoute.POST("/sign_up", signUpHandler)
+		authRoute.POST("/sign_in", signInHandler)
+		authorizedRoutes := authRoute.Group("/")
+		authorizedRoutes.Use(func(c *gin.Context) {
+			claims, token, err := authRepository.GetTokenFromRequest(c.Request)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
+			} else {
+				c.Set("claims", claims)
+				c.Set("token", token)
+			}
+		})
+		authorizedRoutes.GET("/verify", verifyHandler)
+		authorizedRoutes.DELETE("/invalidate", invalidateHandler)
+	}
 
 	srv := &http.Server{
 		Addr:         "0.0.0.0:8081",
@@ -40,70 +48,55 @@ func main() {
 	}
 }
 
-var signUpHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	if body, err := ioutil.ReadAll(r.Body); err != nil {
-		handleError(err, w, r)
+func signUpHandler(c *gin.Context) {
+	request := &internal.SignUpRequest{}
+	if err := c.BindJSON(request); err != nil {
+		handleError(err, c)
+	} else if auth, err := authRepository.CreateAuth(request.Email, request.Password); err != nil {
+		handleError(err, c)
+	} else if signedString, err := authRepository.CreateToken(auth); err != nil {
+		handleError(err, c)
 	} else {
-		request := &struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}{}
-		if err := json.Unmarshal(body, request); err != nil {
-			handleError(err, w, r)
-		} else if auth, err := authService.CreateAuth(request.Email, request.Password); err != nil {
-			handleError(err, w, r)
-		} else if signedString, err := authService.CreateToken(auth); err != nil {
-			handleError(err, w, r)
-		} else {
-			w.Header().Add("Authorization", "bearer "+signedString)
-			w.WriteHeader(http.StatusOK)
-		}
+		c.Header("Authorization", "bearer "+signedString)
+		c.Writer.WriteHeader(http.StatusOK)
 	}
-})
+}
 
-var signInHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	if body, err := ioutil.ReadAll(r.Body); err != nil {
-		handleError(err, w, r)
+func signInHandler(c *gin.Context) {
+	request := &internal.SignInRequest{}
+	if err := c.BindJSON(request); err != nil {
+		handleError(err, c)
+	} else if auth, found := authRepository.Authenticate(request.Email, request.Password); !found {
+		handleError(errors.New("auth not found"), c)
+	} else if signedString, err := authRepository.CreateToken(auth); err != nil {
+		handleError(err, c)
 	} else {
-		request := &struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}{}
-		if err := json.Unmarshal(body, request); err != nil {
-			handleError(err, w, r)
-		} else if auth, found := authService.Authenticate(request.Email, request.Password); !found {
-			handleError(errors.New("auth not found"), w, r)
-		} else if signedString, err := authService.CreateToken(auth); err != nil {
-			handleError(err, w, r)
-		} else {
-			w.Header().Add("Authorization", "bearer "+signedString)
-			w.WriteHeader(http.StatusOK)
-		}
+		c.Header("Authorization", "bearer "+signedString)
+		c.Status(http.StatusOK)
 	}
-})
+}
 
-var validateHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	if userClaims, err := authService.GetTokenFromRequest(r); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusUnauthorized)
+func verifyHandler(c *gin.Context) {
+	userClaims := c.MustGet("claims").(*internal.UserClaims)
+	c.JSON(http.StatusOK, gin.H{
+		"audiences": userClaims.Audience,
+		"flags":     userClaims.Flags,
+	})
+}
+
+func invalidateHandler(c *gin.Context) {
+	userClaims := c.MustGet("claims").(*internal.UserClaims)
+	token := c.MustGet("token").(string)
+	if err := authRepository.InvalidateToken(userClaims, token); err != nil {
+		handleError(err, c)
 	} else {
-		response := struct {
-			Audiences []string `json:"audiences"`
-			Flags     []string `json:"flags"`
-		}{
-			Audiences: userClaims.Audience,
-			Flags:     userClaims.Flags,
-		}
-		if responseJson, err := json.Marshal(response); err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-		} else {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(responseJson)
-		}
+		c.Status(http.StatusOK)
 	}
-})
+}
 
-func handleError(err error, w http.ResponseWriter, r *http.Request) {
+func handleError(err error, c *gin.Context) {
 	log.Println(err)
-	w.WriteHeader(http.StatusBadRequest)
+	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+		"status": err.Error(),
+	})
 }
