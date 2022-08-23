@@ -2,13 +2,13 @@ module manoamaro.github.com/products_service
 
 go 1.18
 
-replace (
-	manoamaro.github.com/commons => ../commons
-)
+replace manoamaro.github.com/commons => ../commons
 
 require (
 	github.com/gin-gonic/gin v1.8.1
+	github.com/go-playground/assert/v2 v2.0.1
 	go.mongodb.org/mongo-driver v1.7.2
+	golang.org/x/exp v0.0.0-20220823124025-807a23277127
 	manoamaro.github.com/commons v0.0.0
 )
 

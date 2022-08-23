@@ -7,7 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"manoamaro.github.com/commons"
-	"manoamaro.github.com/products_service/models"
+	"manoamaro.github.com/products_service/internal/models"
 )
 
 const ProductsCollection string = "Products"
@@ -27,7 +27,7 @@ type DefaultProductsRepository struct {
 	db      *mongo.Database
 }
 
-func NewProductsRepository() ProductsRepository {
+func NewDefaultProductsRepository() ProductsRepository {
 	uri := commons.GetEnv("MONGO_URL", "mongodb://test:test@localhost:27017/?maxPoolSize=20&w=majority")
 	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(uri))
 	if err != nil {

@@ -9,12 +9,13 @@ import (
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang-jwt/jwt/v4/request"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"log"
-	models2 "manoamaro.github.com/auth_service/internal/models"
+	"manoamaro.github.com/auth_service/internal/models"
 	"manoamaro.github.com/commons"
 	"net/http"
 	"strconv"
@@ -23,11 +24,11 @@ import (
 
 type AuthRepository interface {
 	GetTokenFromRequest(r *http.Request) (*UserClaims, string, error)
-	CreateAuth(email string, plainPassword string) (auth *models2.Auth, err error)
-	Authenticate(email string, plainPassword string) (auth *models2.Auth, found bool)
+	CreateAuth(email string, plainPassword string) (auth *models.Auth, err error)
+	Authenticate(email string, plainPassword string) (auth *models.Auth, found bool)
 	InvalidateToken(token *UserClaims, rawToken string) error
 	CheckToken(rawToken string) bool
-	CreateToken(auth *models2.Auth) (string, error)
+	CreateToken(auth *models.Auth) (string, error)
 }
 
 type DefaultAuthRepository struct {
@@ -42,13 +43,19 @@ func NewDefaultAuthRepository() AuthRepository {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	migration, err := NewMigration(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := migration.Up(); err != nil {
+		log.Fatal(err)
+	}
+
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: db,
 	}), &gorm.Config{})
-
-	if err := gormDB.AutoMigrate(&models2.Auth{}, &models2.Flag{}, &models2.Audience{}, &models2.Domain{}); err != nil {
-		log.Fatal(err)
-	}
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     commons.GetEnv("REDIS_URL", "localhost:6379"),
@@ -65,13 +72,13 @@ func NewDefaultAuthRepository() AuthRepository {
 	}
 }
 
-func (s *DefaultAuthRepository) CreateAuth(email string, plainPassword string) (auth *models2.Auth, err error) {
-	s.ormDB.Preload(clause.Associations).Where(&models2.Auth{Email: email}).First(&auth)
+func (s *DefaultAuthRepository) CreateAuth(email string, plainPassword string) (auth *models.Auth, err error) {
+	s.ormDB.Preload(clause.Associations).Where(&models.Auth{Email: email}).First(&auth)
 	if auth != nil && auth.ID > 0 {
 		return nil, errors.New("user already exists")
 	}
 	salt := strconv.FormatInt(time.Now().UnixNano(), 16)
-	auth = &models2.Auth{
+	auth = &models.Auth{
 		Email:    email,
 		Password: CalculatePasswordHash(plainPassword, salt),
 		Salt:     salt,
@@ -84,8 +91,8 @@ func (s *DefaultAuthRepository) CreateAuth(email string, plainPassword string) (
 	return auth, nil
 }
 
-func (s *DefaultAuthRepository) Authenticate(email string, plainPassword string) (auth *models2.Auth, found bool) {
-	s.ormDB.Preload(clause.Associations).Where(&models2.Auth{Email: email}).First(&auth)
+func (s *DefaultAuthRepository) Authenticate(email string, plainPassword string) (auth *models.Auth, found bool) {
+	s.ormDB.Preload(clause.Associations).Where(&models.Auth{Email: email}).First(&auth)
 	if auth.ID == 0 {
 		return nil, false
 	} else if passwordHash := CalculatePasswordHash(plainPassword, auth.Salt); passwordHash != auth.Password {
@@ -116,18 +123,18 @@ func (s *DefaultAuthRepository) getRedisInvalidTokenKey(rawToken string) string 
 	return fmt.Sprintf("token.invalid.%s", rawToken)
 }
 
-func (s *DefaultAuthRepository) CreateToken(auth *models2.Auth) (string, error) {
-	var audiences []models2.Audience
-	s.ormDB.Preload(clause.Associations).Where(&models2.Audience{Auth: auth}).First(&audiences)
+func (s *DefaultAuthRepository) CreateToken(auth *models.Auth) (string, error) {
+	var audiences []models.Audience
+	s.ormDB.Preload(clause.Associations).Where(&models.Audience{Auth: auth}).First(&audiences)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
 		jwt.RegisteredClaims{
 			ID:        strconv.Itoa(int(auth.ID)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
-			Audience:  commons.MapTo(audiences, func(audience models2.Audience) string { return audience.Domain.Domain }),
+			Audience:  commons.MapTo(audiences, func(audience models.Audience) string { return audience.Domain.Domain }),
 		},
 		AuthInfo{
-			Flags: commons.MapTo(auth.Flags, func(flag models2.Flag) string { return flag.Name }),
+			Flags: commons.MapTo(auth.Flags, func(flag models.Flag) string { return flag.Name }),
 		},
 	})
 	return token.SignedString(GetJWTSecret())
