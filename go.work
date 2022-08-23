@@ -1,0 +1,9 @@
+go 1.18
+
+use (
+	./auth_service
+	./commons
+	./products_service
+)
+
+replace manoamaro.github.com/commons v0.0.0 => ./commons
