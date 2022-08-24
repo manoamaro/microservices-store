@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
-	"manoamaro.github.com/commons"
+	"manoamaro.github.com/commons/pkg/collections"
 	"net/http"
 )
 
@@ -16,8 +16,7 @@ type DefaultAuthService struct {
 	client *http.Client
 }
 
-func NewDefaultAuthService() AuthService {
-	host := commons.GetEnv("AUTH_URL", "http://localhost:8081/auth")
+func NewDefaultAuthService(host string) AuthService {
 	return &DefaultAuthService{
 		host:   host,
 		client: &http.Client{},
@@ -42,5 +41,5 @@ func (d *DefaultAuthService) Validate(token string, audiences []string) (error, 
 	if err != nil {
 		return err, false
 	}
-	return nil, len(audiences) == 0 || commons.ContainsAny(body.Audiences, audiences)
+	return nil, len(audiences) == 0 || collections.ContainsAny(body.Audiences, audiences)
 }

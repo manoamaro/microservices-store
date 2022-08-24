@@ -5,13 +5,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"manoamaro.github.com/commons"
 	"manoamaro.github.com/products_service/internal/models"
 )
 
 const ProductsCollection string = "Products"
-const ProductsServiceDatabase = "ProductsService"
 
 type ProductsRepository interface {
 	ListProducts() ([]models.Product, error)
@@ -23,26 +20,18 @@ type ProductsRepository interface {
 
 type DefaultProductsRepository struct {
 	context context.Context
-	client  *mongo.Client
 	db      *mongo.Database
 }
 
-func NewDefaultProductsRepository() ProductsRepository {
-	uri := commons.GetEnv("MONGO_URL", "mongodb://test:test@localhost:27017/?maxPoolSize=20&w=majority")
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(uri))
-	if err != nil {
-		panic(err)
-	}
-
+func NewDefaultProductsRepository(db *mongo.Database) ProductsRepository {
 	return &DefaultProductsRepository{
 		context: context.Background(),
-		client:  client,
-		db:      client.Database(ProductsServiceDatabase),
+		db:      db,
 	}
 }
 
 func (d *DefaultProductsRepository) ListProducts() ([]models.Product, error) {
-	cursor, err := d.client.Database(ProductsServiceDatabase).Collection(ProductsCollection).Find(d.context, bson.D{})
+	cursor, err := d.db.Collection(ProductsCollection).Find(d.context, bson.D{})
 	if err != nil {
 		return nil, err
 	}

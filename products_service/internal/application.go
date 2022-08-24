@@ -1,14 +1,17 @@
 package internal
 
 import (
-	"errors"
+	"context"
 	"github.com/gin-gonic/gin"
-	"log"
-	"manoamaro.github.com/products_service/internal/models"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"manoamaro.github.com/commons/pkg"
+	"manoamaro.github.com/products_service/internal/controller"
 	"manoamaro.github.com/products_service/internal/repository"
 	"manoamaro.github.com/products_service/internal/service"
-	"net/http"
 )
+
+const ProductsServiceDatabase = "ProductsService"
 
 type Application struct {
 	ProductsRepository repository.ProductsRepository
@@ -16,9 +19,16 @@ type Application struct {
 }
 
 func NewApplication() *Application {
+	authUrl := pkg.GetEnv("AUTH_URL", "http://localhost:8081/auth")
+	mongoUrl := pkg.GetEnv("MONGO_URL", "mongodb://test:test@localhost:27017/?maxPoolSize=20&w=majority")
+	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoUrl))
+	if err != nil {
+		panic(err)
+	}
+	mongoDB := mongoClient.Database(ProductsServiceDatabase)
 	return &Application{
-		ProductsRepository: repository.NewDefaultProductsRepository(),
-		AuthService:        service.NewDefaultAuthService(),
+		ProductsRepository: repository.NewDefaultProductsRepository(mongoDB),
+		AuthService:        service.NewDefaultAuthService(authUrl),
 	}
 }
 
@@ -30,76 +40,8 @@ func (a *Application) SetupRoutes() *gin.Engine {
 		c.Set("authService", a.AuthService)
 	})
 
-	publicGroup := r.Group("/public")
-	{
-		publicGroup.GET("/", ListProductsHandler)
-	}
-	mgmtGroup := r.Group("/mgmt")
-	{
-		mgmtGroup.Use(AuthMiddleware([]string{"products_admin"}))
-		mgmtGroup.GET("/list", ListProductsHandler)
-		mgmtGroup.POST("/create", PostProductsHandler)
-	}
+	controller.ProductController(r)
+	controller.AdminProductController(r)
+
 	return r
-}
-
-func AuthMiddleware(requiredDomains []string) func(context *gin.Context) {
-	return func(context *gin.Context) {
-		auth := authService(context)
-		token := context.GetHeader("Authorization")
-		err, isValid := auth.Validate(token, requiredDomains)
-		if err != nil {
-			UnauthorizedRequest(err, context)
-		} else if !isValid {
-			UnauthorizedRequest(errors.New("not authorised"), context)
-		}
-	}
-}
-
-func ListProductsHandler(c *gin.Context) {
-	productsRepository := productsRepository(c)
-	if products, err := productsRepository.ListProducts(); err != nil {
-		BadRequest(err, c)
-	} else {
-		c.JSON(http.StatusOK, products)
-	}
-}
-
-func PostProductsHandler(c *gin.Context) {
-	productsRepository := productsRepository(c)
-	newProduct := models.Product{}
-	if err := c.BindJSON(&newProduct); err != nil {
-		BadRequest(err, c)
-	} else if savedProduct, err := productsRepository.InsertProduct(newProduct); err != nil {
-		BadRequest(err, c)
-	} else {
-		c.JSON(http.StatusOK, savedProduct)
-	}
-}
-
-func get[T any](c *gin.Context, key string) T {
-	return c.MustGet(key).(T)
-}
-
-func productsRepository(c *gin.Context) repository.ProductsRepository {
-	return get[repository.ProductsRepository](c, "productsRepository")
-}
-
-func authService(c *gin.Context) service.AuthService {
-	return get[service.AuthService](c, "authService")
-}
-
-func BadRequest(err error, c *gin.Context) {
-	handleError(err, c, http.StatusBadRequest)
-}
-
-func UnauthorizedRequest(err error, c *gin.Context) {
-	handleError(err, c, http.StatusUnauthorized)
-}
-
-func handleError(err error, c *gin.Context, status int) {
-	log.Println(err)
-	c.AbortWithStatusJSON(status, gin.H{
-		"status": err.Error(),
-	})
 }

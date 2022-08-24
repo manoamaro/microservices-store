@@ -16,7 +16,8 @@ import (
 	"gorm.io/gorm/clause"
 	"log"
 	"manoamaro.github.com/auth_service/internal/models"
-	"manoamaro.github.com/commons"
+	"manoamaro.github.com/commons/pkg"
+	"manoamaro.github.com/commons/pkg/collections"
 	"net/http"
 	"strconv"
 	"time"
@@ -39,7 +40,7 @@ type DefaultAuthRepository struct {
 }
 
 func NewDefaultAuthRepository() AuthRepository {
-	db, err := sql.Open("postgres", commons.GetEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"))
+	db, err := sql.Open("postgres", pkg.GetEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -58,9 +59,9 @@ func NewDefaultAuthRepository() AuthRepository {
 	}), &gorm.Config{})
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     commons.GetEnv("REDIS_URL", "localhost:6379"),
-		Username: commons.GetEnv("REDIS_USERNAME", ""),
-		Password: commons.GetEnv("REDIS_PASSWORD", ""),
+		Addr:     pkg.GetEnv("REDIS_URL", "localhost:6379"),
+		Username: pkg.GetEnv("REDIS_USERNAME", ""),
+		Password: pkg.GetEnv("REDIS_PASSWORD", ""),
 		DB:       0, // use default DB
 	})
 
@@ -131,10 +132,10 @@ func (s *DefaultAuthRepository) CreateToken(auth *models.Auth) (string, error) {
 			ID:        strconv.Itoa(int(auth.ID)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
-			Audience:  commons.MapTo(audiences, func(audience models.Audience) string { return audience.Domain.Domain }),
+			Audience:  collections.MapTo(audiences, func(audience models.Audience) string { return audience.Domain.Domain }),
 		},
 		AuthInfo{
-			Flags: commons.MapTo(auth.Flags, func(flag models.Flag) string { return flag.Name }),
+			Flags: collections.MapTo(auth.Flags, func(flag models.Flag) string { return flag.Name }),
 		},
 	})
 	return token.SignedString(GetJWTSecret())
