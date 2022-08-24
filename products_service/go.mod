@@ -2,6 +2,8 @@ module manoamaro.github.com/products_service
 
 go 1.18
 
+replace manoamaro.github.com/commons v0.0.0 => ../commons
+
 require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-playground/assert/v2 v2.0.1

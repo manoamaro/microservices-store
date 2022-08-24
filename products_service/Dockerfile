@@ -5,13 +5,15 @@ ENV CGO_ENABLED=0
 RUN mkdir /app
 WORKDIR /app
 
-COPY go.* ./
+COPY commons/ /commons/
+
+COPY products_service/go.* ./
 
 RUN go mod download
 
-COPY . .
+COPY products_service/. .
 
-RUN go build -o ./app
+RUN go build -o ./app cmd/main.go
 
 FROM scratch
 

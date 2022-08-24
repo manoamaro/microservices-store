@@ -1,14 +1,12 @@
 version: "3.9"
 
 services:
-  gateway:
-    build: ./gateway
+  nginx-proxy:
+    image: jwilder/nginx-proxy
     ports:
       - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-    environment:
-      CONSUL_URL: consul:8500
 
   mongo:
     image: mongo
@@ -17,41 +15,42 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin
 
-  vault:
-    image: vault
+  postgres:
+    image: postgres
+    restart: always
     environment:
-      - SKIP_SETCAP=1
-      - VAULT_DEV_ROOT_TOKEN_ID=8fb95528-57c6-422e-9722-d2147bcba8ed
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:15672"]
-        interval: 30s
-        timeout: 10s
-        retries: 5
-
-  memcached:
-    image: memcached
+  redis:
+    image: redis
+    restart: always
 
   auth:
-    build: ./auth_service
+    build:
+      context: .
+      dockerfile: auth_service/Dockerfile
     restart: on-failure
     depends_on:
-      - mongo
-      - consul
+      - postgres
+      - redis
     environment:
-      MONGO_URL: mongodb://admin:admin@mongo:27017
-      CONSUL_URL: consul:8500
+      DB_URL: "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable"
+      REDIS_URL: "redis:6379"
+      VIRTUAL_HOST: auth.local
 
   products:
-    build: ./products_service
+    build:
+      context: .
+      dockerfile: products_service/Dockerfile
     depends_on:
-      - rabbitmq
       - mongo
-      - consul
     restart: on-failure
     environment:
       MONGO_URL: mongodb://admin:admin@mongo:27017
-      CONSUL_URL: consul:8500
+      AUTH_URL: http://auth:8081
+      VIRTUAL_HOST: product.local
+
+
 
