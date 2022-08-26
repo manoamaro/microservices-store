@@ -1,1 +1,31 @@
 favoriteDrink: coffee
+
+redis:
+  image:
+    registry: docker.io
+    repository: redis
+    tag: latest
+  auth:
+    enabled: false
+
+postgresql:
+  image:
+    registry: docker.io
+    repository: postgres
+    tag: latest
+  auth:
+    username: postgres
+    password: postgres
+
+mongodb:
+  image:
+    registry: docker.io
+    repository: mongo
+    tag: latest
+  auth:
+    usernames:
+      - products
+    passwords:
+      - mongo
+    databases:
+      - products_db
