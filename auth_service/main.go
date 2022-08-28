@@ -4,17 +4,19 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"log"
+	"manoamaro.github.com/auth_service/internal/helpers"
+	"manoamaro.github.com/auth_service/internal/repositories"
 	"net/http"
 	"time"
 
 	"manoamaro.github.com/auth_service/internal"
 )
 
-var authRepository internal.AuthRepository
+var authRepository repositories.AuthRepository
 
 func main() {
 
-	authRepository = internal.NewDefaultAuthRepository()
+	authRepository = repositories.NewDefaultAuthRepository()
 
 	r := gin.Default()
 	authRoute := r.Group("/auth")
@@ -77,7 +79,7 @@ func signInHandler(c *gin.Context) {
 }
 
 func verifyHandler(c *gin.Context) {
-	userClaims := c.MustGet("claims").(*internal.UserClaims)
+	userClaims := c.MustGet("claims").(*helpers.UserClaims)
 	c.JSON(http.StatusOK, gin.H{
 		"audiences": userClaims.Audience,
 		"flags":     userClaims.Flags,
@@ -85,7 +87,7 @@ func verifyHandler(c *gin.Context) {
 }
 
 func invalidateHandler(c *gin.Context) {
-	userClaims := c.MustGet("claims").(*internal.UserClaims)
+	userClaims := c.MustGet("claims").(*helpers.UserClaims)
 	token := c.MustGet("token").(string)
 	if err := authRepository.InvalidateToken(userClaims, token); err != nil {
 		handleError(err, c)

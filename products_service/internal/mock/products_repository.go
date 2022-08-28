@@ -1,4 +1,4 @@
-package test
+package mock
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"

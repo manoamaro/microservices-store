@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "manoamaro.github.com/commons/pkg/services";
+
+service AuthService {
+  rpc Verify(VerifyRequest) returns (AuthResponse);
+}
+
+message VerifyRequest {
+  string rawToken = 1;
+}
+
+message AuthResponse {
+  repeated string audiences = 1;
+  repeated string flags = 2;
+}

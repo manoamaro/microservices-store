@@ -1,69 +1,48 @@
 package controller
 
 import (
-	"errors"
 	"github.com/gin-gonic/gin"
-	"manoamaro.github.com/commons/pkg"
-	"manoamaro.github.com/products_service/internal/models"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"manoamaro.github.com/commons/pkg/helpers"
 	"manoamaro.github.com/products_service/internal/repository"
-	"manoamaro.github.com/products_service/internal/service"
 	"net/http"
 )
 
-func ProductController(r *gin.Engine) {
+type ProductController struct {
+	ProductsRepository repository.ProductsRepository
+}
+
+func NewProductController(r *gin.Engine, productsRepository repository.ProductsRepository) *ProductController {
+	controller := &ProductController{
+		productsRepository,
+	}
 	publicGroup := r.Group("/public")
 	{
-		publicGroup.GET("/", listProductsHandler)
+		publicGroup.GET("/", controller.listProductsHandler)
+		publicGroup.GET("/:id", controller.getProductHandler)
 	}
+
+	return controller
 }
 
-func AdminProductController(r *gin.Engine) {
-	mgmtGroup := r.Group("/admin")
-	{
-		mgmtGroup.Use(AuthMiddleware([]string{"products_admin"}))
-		mgmtGroup.GET("/list", listProductsHandler)
-		mgmtGroup.POST("/create", postProductsHandler)
-	}
-}
-
-func listProductsHandler(c *gin.Context) {
-	productsRepository := ProductsRepository(c)
-	if products, err := productsRepository.ListProducts(); err != nil {
-		pkg.BadRequest(err, c)
+func (p *ProductController) listProductsHandler(c *gin.Context) {
+	if products, err := p.ProductsRepository.ListProducts(); err != nil {
+		helpers.BadRequest(err, c)
 	} else {
 		c.JSON(http.StatusOK, products)
 	}
 }
 
-func postProductsHandler(c *gin.Context) {
-	productsRepository := ProductsRepository(c)
-	newProduct := models.Product{}
-	if err := c.BindJSON(&newProduct); err != nil {
-		pkg.BadRequest(err, c)
-	} else if savedProduct, err := productsRepository.InsertProduct(newProduct); err != nil {
-		pkg.BadRequest(err, c)
+func (p *ProductController) getProductHandler(c *gin.Context) {
+	id := c.Param("id")
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		helpers.BadRequest(err, c)
+		return
+	}
+	if product, err := p.ProductsRepository.GetProduct(objectID); err != nil {
+		helpers.BadRequest(err, c)
 	} else {
-		c.JSON(http.StatusOK, savedProduct)
+		c.JSON(http.StatusOK, product)
 	}
-}
-
-func AuthMiddleware(requiredDomains []string) func(context *gin.Context) {
-	return func(context *gin.Context) {
-		auth := AuthService(context)
-		token := context.GetHeader("Authorization")
-		err, isValid := auth.Validate(token, requiredDomains)
-		if err != nil {
-			pkg.UnauthorizedRequest(err, context)
-		} else if !isValid {
-			pkg.UnauthorizedRequest(errors.New("not authorised"), context)
-		}
-	}
-}
-
-func ProductsRepository(c *gin.Context) repository.ProductsRepository {
-	return pkg.GetFromContext[repository.ProductsRepository](c, "productsRepository")
-}
-
-func AuthService(c *gin.Context) service.AuthService {
-	return pkg.GetFromContext[service.AuthService](c, "authService")
 }

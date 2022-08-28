@@ -1,4 +1,4 @@
-package pkg
+package helpers
 
 import (
 	"github.com/gin-gonic/gin"
@@ -14,6 +14,19 @@ func GetEnv(name string, fallback string) (value string) {
 		value = fallback
 	}
 	return
+}
+
+type ENV string
+
+const (
+	DEV  ENV = "dev"
+	TEST ENV = "test"
+	PROD ENV = "prod"
+)
+
+func IsEnvironment(env ENV) bool {
+	current := GetEnv("environment", string(DEV))
+	return ENV(current) == env
 }
 
 func GetFromContext[T any](c *gin.Context, key string) T {
