@@ -18,13 +18,15 @@ spec:
         - name: {{ include "mongodb.fullname" . }}
           image: mongo:latest
           env:
-            - name: MONGO_INITDB_ROOT_USERNAME_FILE
+            - name: MONGO_INITDB_ROOT_USERNAME
               value: /etc/k8-test/admin/MONGO_ROOT_USERNAME
-            - name: MONGO_INITDB_ROOT_PASSWORD_FILE
+            - name: MONGO_INITDB_ROOT_PASSWORD
               value: /etc/k8-test/admin/MONGO_ROOT_PASSWORD
           volumeMounts:
             - name: {{ include "mongodb.fullname" . }}-data
               mountPath: /data/db
+          ports:
+            - containerPort: 27017
       volumes:
         - name: k8-test
           secret:
@@ -36,27 +38,6 @@ spec:
               - key: MONGO_ROOT_PASSWORD
                 path: admin/MONGO_ROOT_PASSWORD
                 mode: 0444
-              - key: MONGO_USERNAME
-                path: MONGO_USERNAME
-                mode: 0444
-              - key: MONGO_PASSWORD
-                path: MONGO_PASSWORD
-                mode: 0444
-              - key: MONGO_USERS_LIST
-                path: MONGO_USERS_LIST
-                mode: 0444
-        - name: {{ include "mongodb.fullname" . }}-scripts
-          configMap:
-            name: {{ include "mongodb.fullname" . }}-configmap
-            items:
-              - key: ensure-users.js
-                path: ensure-users.js
-        - name: {{ include "mongodb.fullname" . }}-configmap
-          configMap:
-            name: {{ include "mongodb.fullname" . }}-configmap
-            items:
-              - key: mongo.conf
-                path: mongo.conf
         - name: {{ include "mongodb.fullname" . }}-data
           persistentVolumeClaim:
             claimName: {{ include "mongodb.fullname" . }}-pvc
