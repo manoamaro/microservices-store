@@ -15,12 +15,3 @@ func GetJWTSecret() []byte {
 func GetJWTSecretFunc(_ *jwt.Token) (interface{}, error) {
 	return GetJWTSecret(), nil
 }
-
-type AuthInfo struct {
-	Flags []string
-}
-
-type UserClaims struct {
-	jwt.RegisteredClaims
-	AuthInfo
-}

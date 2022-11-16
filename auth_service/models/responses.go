@@ -1,4 +1,4 @@
-package internal
+package models
 
 type ErrorResponse struct {
 	Status string `json:"status"`

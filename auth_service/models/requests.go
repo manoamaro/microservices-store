@@ -1,4 +1,4 @@
-package internal
+package models
 
 type SignUpRequest struct {
 	Email    string `json:"email"`
