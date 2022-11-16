@@ -1,4 +1,4 @@
-module manoamaro.github.com/commons
+module github.com/manoamaro/microservices-store/commons
 
 go 1.18
 
