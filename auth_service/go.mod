@@ -2,7 +2,7 @@ module github.com/manoamaro/microservices-store/auth_service
 
 go 1.18
 
-replace manoamaro.github.com/commons v0.0.0 => github.com/manoamaro/microservices-store v1.0.0
+replace manoamaro.github.com/commons v1.0.1 => github.com/manoamaro/microservices-store v1.0.1
 
 require (
 	github.com/gin-gonic/gin v1.8.1
@@ -12,7 +12,7 @@ require (
 	github.com/lib/pq v1.10.2
 	gorm.io/driver/postgres v1.3.5
 	gorm.io/gorm v1.23.8
-	manoamaro.github.com/commons v0.0.0
+	manoamaro.github.com/commons v1.0.1
 )
 
 require (
