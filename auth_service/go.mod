@@ -1,8 +1,8 @@
-module manoamaro.github.com/auth_service
+module github.com/manoamaro/microservices-store/auth_service
 
 go 1.18
 
-replace manoamaro.github.com/commons v0.0.0 => ../commons
+replace manoamaro.github.com/commons v0.0.0 => github.com/manoamaro/microservices-store v1.0.0
 
 require (
 	github.com/gin-gonic/gin v1.8.1
