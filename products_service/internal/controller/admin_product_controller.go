@@ -3,10 +3,10 @@ package controller
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
-	"manoamaro.github.com/commons/pkg/helpers"
-	"manoamaro.github.com/commons/pkg/services"
-	"manoamaro.github.com/products_service/internal/models"
-	"manoamaro.github.com/products_service/internal/repository"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
+	"github.com/manoamaro/microservices-store/products_service/internal/models"
+	"github.com/manoamaro/microservices-store/products_service/internal/repository"
+	"github.com/manoamaro/microservices-store/products_service/internal/services"
 	"net/http"
 )
 

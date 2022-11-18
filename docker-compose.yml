@@ -39,6 +39,12 @@ services:
       DB_URL: "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable"
       REDIS_URL: "redis:6379"
       VIRTUAL_HOST: auth.local
+      PORT: 8082
+      environment: prod
+    expose:
+      - 8082
+    ports:
+      - "8082:8082"
 
   products:
     build:
@@ -49,8 +55,14 @@ services:
     restart: on-failure
     environment:
       MONGO_URL: mongodb://admin:admin@mongo:27017
-      AUTH_URL: http://auth:8081
+      AUTH_URL: http://auth:8082
       VIRTUAL_HOST: product.local
+      PORT: 8081
+      environment: prod
+    expose:
+      - 8081
+    ports:
+      - "8081:8081"
 
 
 

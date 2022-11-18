@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/manoamaro/microservices-store/auth_service/internal"
 	"log"
-	"manoamaro.github.com/auth_service/internal"
 )
 
 func main() {

@@ -2,10 +2,10 @@ package repository
 
 import (
 	"context"
+	"github.com/manoamaro/microservices-store/products_service/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"manoamaro.github.com/products_service/internal/models"
 )
 
 const ProductsCollection string = "Products"

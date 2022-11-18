@@ -3,9 +3,9 @@ package controllers
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
-	"manoamaro.github.com/auth_service/internal/repositories"
-	"manoamaro.github.com/auth_service/models"
-	"manoamaro.github.com/commons/pkg/helpers"
+	"github.com/manoamaro/microservices-store/auth_service/internal/repositories"
+	"github.com/manoamaro/microservices-store/auth_service/models"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"net/http"
 )
 

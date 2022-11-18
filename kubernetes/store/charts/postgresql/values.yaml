@@ -5,9 +5,8 @@
 replicaCount: 1
 
 image:
-  repository: nginx
+  repository: postgres
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
 imagePullSecrets: []
@@ -15,8 +14,8 @@ nameOverride: ""
 fullnameOverride: ""
 
 auth:
-  rootUsername: YWRtaW4K
-  rootPassword: cGFzc3dvcmQK
+  rootUsername: cG9zdGdyZXM=
+  rootPassword: cG9zdGdyZXM=
 
 serviceAccount:
   # Specifies whether a service account should be created

@@ -3,13 +3,13 @@ package internal
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
+	"github.com/manoamaro/microservices-store/products_service/internal/controller"
+	"github.com/manoamaro/microservices-store/products_service/internal/mock"
+	"github.com/manoamaro/microservices-store/products_service/internal/repository"
+	"github.com/manoamaro/microservices-store/products_service/internal/services"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"manoamaro.github.com/commons/pkg/helpers"
-	"manoamaro.github.com/commons/pkg/services"
-	"manoamaro.github.com/products_service/internal/controller"
-	"manoamaro.github.com/products_service/internal/mock"
-	"manoamaro.github.com/products_service/internal/repository"
 )
 
 const ProductsServiceDatabase = "ProductsService"

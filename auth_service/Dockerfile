@@ -2,18 +2,16 @@ FROM golang:alpine AS builder
 
 ENV CGO_ENABLED=0
 
+RUN apk update && apk add git
+
 RUN mkdir /app
 WORKDIR /app
 
-COPY commons/ /commons/
-
-COPY auth_service/go.* ./
+COPY . .
 
 RUN go mod download
 
-COPY auth_service/. .
-
-RUN go build -o ./app
+RUN go build -o ./app auth_service/cmd/main.go
 
 FROM scratch
 

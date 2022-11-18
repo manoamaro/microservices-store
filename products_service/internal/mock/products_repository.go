@@ -1,9 +1,9 @@
 package mock
 
 import (
+	"github.com/manoamaro/microservices-store/products_service/internal/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/exp/maps"
-	"manoamaro.github.com/products_service/internal/models"
 )
 
 type MockProductsRepository struct {

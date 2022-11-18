@@ -2,14 +2,16 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: {{ include "postgresql.fullname" . }}-pv
+  labels:
+    {{- include "postgresql.labels" . | nindent 4 }}
 spec:
   capacity:
-    storage: 1Gi
-  volumeMode: Filesystem
+    storage: 5Gi
+  storageClassName: {{ include "postgresql.fullname" . }}-local-storage
   accessModes:
     - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  local:
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
     path: /var/lib/postgresql/data
   nodeAffinity:
     required:

@@ -1,7 +1,7 @@
-kind: StorageClass
 apiVersion: storage.k8s.io/v1
+kind: StorageClass
 metadata:
-  name: {{ include "postgresql.fullname" . }}-storage-class
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: Immediate
-allowVolumeExpansion: true
+  name: {{ include "postgresql.fullname" . }}-local-storage
+provisioner: k8s.io/minikube-hostpath
+#provisioner: kubernetes.io/no-provisioner
+#volumeBindingMode: WaitForFirstConsumer

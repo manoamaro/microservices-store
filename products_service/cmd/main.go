@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
+	"github.com/manoamaro/microservices-store/products_service/internal"
 	"log"
-	"manoamaro.github.com/products_service/internal"
 	"net/http"
 	"time"
 )
@@ -13,8 +15,10 @@ func main() {
 
 	r := application.SetupRoutes()
 
+	port := helpers.GetEnv("PORT", "8080")
+
 	srv := &http.Server{
-		Addr:         "0.0.0.0:8080",
+		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,

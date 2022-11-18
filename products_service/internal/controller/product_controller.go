@@ -2,9 +2,9 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
+	"github.com/manoamaro/microservices-store/products_service/internal/repository"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"manoamaro.github.com/commons/pkg/helpers"
-	"manoamaro.github.com/products_service/internal/repository"
 	"net/http"
 )
 

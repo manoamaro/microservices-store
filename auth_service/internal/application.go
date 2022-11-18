@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/manoamaro/microservices-store/auth_service/internal/controllers"
+	"github.com/manoamaro/microservices-store/auth_service/internal/repositories"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"log"
-	"manoamaro.github.com/auth_service/internal/controllers"
-	"manoamaro.github.com/auth_service/internal/repositories"
-	"manoamaro.github.com/commons/pkg/helpers"
 	"net/http"
 	"time"
 )
