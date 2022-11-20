@@ -3,13 +3,14 @@ package test
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/go-playground/assert/v2"
-	"manoamaro.github.com/products_service/internal"
-	"manoamaro.github.com/products_service/internal/mock"
-	"manoamaro.github.com/products_service/internal/models"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-playground/assert/v2"
+	"github.com/manoamaro/microservices-store/products_service/internal"
+	"github.com/manoamaro/microservices-store/products_service/internal/mock"
+	"github.com/manoamaro/microservices-store/products_service/internal/models"
 )
 
 var productsRepository = mock.NewMockProductsRepository()

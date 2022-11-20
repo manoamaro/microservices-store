@@ -1,4 +1,49 @@
-GET http://localhost:8081/admin/list
+@host=http://localhost:8080
+
+# @name listProducts
+GET {{host}}/products
 Accept: application/json
 
 ###
+
+@productId={{listProducts.response.body.$[0].id}}
+
+GET {{host}}/products/{{productId}}
+Accept: application/json
+
+###
+
+GET {{host}}/products?query=product
+Accept: application/json
+
+###
+
+POST {{host}}/products/{{productId}}/review
+
+{
+    "stars": 2,
+    "comment": "New Review 22"
+}
+###
+
+POST {{host}}/user/login
+
+{
+    "email": "email@example.com",
+    "password": "123456"
+}
+
+###
+
+GET {{host}}/cart
+Accept: application/json
+
+###
+
+PUT {{host}}/cart
+Accept: application/json
+
+{
+    "product_id": "{{productId}}",
+    "quantity": 1
+}

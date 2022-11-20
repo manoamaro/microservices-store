@@ -4,4 +4,5 @@ use (
 	commons
 	auth_service
 	products_service
+	store-monolith
 )

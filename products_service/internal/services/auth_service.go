@@ -23,32 +23,30 @@ func NewDefaultAuthService(host string) AuthService {
 	st.Interval = 3000
 
 	return &DefaultAuthService{
-		host: host,
-		cb:   gobreaker.NewCircuitBreaker(st),
-		client: &http.Client{
-			Timeout: 60000,
-		},
+		host:   host,
+		cb:     gobreaker.NewCircuitBreaker(st),
+		client: &http.Client{},
 	}
 }
 
 func (d *DefaultAuthService) Validate(token string, audiences []string) (error, bool) {
 	response, err := d.cb.Execute(func() (interface{}, error) {
-		request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/validate", d.host), nil)
+		request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/auth/verify", d.host), nil)
 		if err != nil {
-			return nil, err
+			return false, err
 		}
 
 		response, err := d.client.Do(request)
 		if err != nil {
-			return nil, err
+			return false, err
 		}
-		return response, nil
+
+		if response.StatusCode != http.StatusOK {
+			return false, nil
+		}
+
+		return true, nil
 	})
 
-	println(response)
-
-	if err != nil {
-		return err, false
-	}
-	return nil, true
+	return err, response.(bool)
 }
