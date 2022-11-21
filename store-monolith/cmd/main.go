@@ -115,7 +115,7 @@ func main() {
 			ctx.AbortWithError(http.StatusBadRequest, err)
 		} else if product, err := productsRepository.GetProduct(productId); err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, err)
-		} else if cart, err := cartsRepository.AddProduct(ctx.GetString("userId"), *product); err != nil {
+		} else if cart, err := cartsRepository.AddProduct(ctx.GetString("userId"), *product, request.Quantity); err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, err)
 		} else {
 			ctx.JSON(200, cart)

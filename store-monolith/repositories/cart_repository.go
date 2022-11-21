@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/manoamaro/microservice-store/monolith/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -44,23 +45,50 @@ func (r *CartsRepository) GetCartForUser(userHexId string) (*models.Cart, error)
 	}
 }
 
-func (r *CartsRepository) AddProduct(userHexId string, product models.Product) (*models.Cart, error) {
+func (r *CartsRepository) GetOrCreateCart(userId primitive.ObjectID, currency string) (*models.Cart, error) {
+	filter := bson.D{{"user_id", userId}}
+	update := bson.D{
+		{"$setOnInsert", bson.D{{"currency", currency}}},
+	}
+	options := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+
+	if res := r.collection.FindOneAndUpdate(r.context, filter, update, options); res.Err() != nil {
+		return nil, res.Err()
+	} else {
+		cart := &models.Cart{}
+		if err := res.Decode(cart); err != nil {
+			return nil, err
+		} else {
+			return cart, nil
+		}
+	}
+}
+
+func (r *CartsRepository) AddProduct(userHexId string, product models.Product, quantity int) (*models.Cart, error) {
 	if userId, err := primitive.ObjectIDFromHex(userHexId); err != nil {
 		return nil, err
 	} else {
-		productPrice := product.Prices[0]
+		cart, err := r.GetOrCreateCart(userId, "EUR")
+		if err != nil {
+			return nil, err
+		}
+
+		productPrice := Find(product.Prices, func(t models.Price) bool {
+			return t.Currency == cart.Currency
+		})
+
+		if productPrice == nil {
+			return nil, fmt.Errorf("products does not contain price in %s", cart.Currency)
+		}
 
 		filter := bson.D{{"user_id", userId}}
 		update := bson.D{
-			{"$addToSet", bson.D{{"product_ids", product.Id}}},
-			{"$set", bson.D{{"total.currency", productPrice.Currency}}},
-			{"$inc", bson.D{{"total.price", productPrice.Price}}},
+			{"$addToSet", bson.D{{"products", bson.D{{"_id", product.Id}, {"quantity", quantity}}}}},
+			{"$inc", bson.D{{"total", productPrice.Price * float64(quantity)}}},
 		}
-
 		options := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
-		res := r.collection.FindOneAndUpdate(r.context, filter, update, options)
 
-		cart := &models.Cart{}
+		res := r.collection.FindOneAndUpdate(r.context, filter, update, options)
 
 		if res.Err() != nil {
 			return nil, res.Err()
@@ -70,4 +98,13 @@ func (r *CartsRepository) AddProduct(userHexId string, product models.Product) (
 			return cart, nil
 		}
 	}
+}
+
+func Find[T interface{}](i []T, f func(T) bool) *T {
+	for _, v := range i {
+		if f(v) {
+			return &v
+		}
+	}
+	return nil
 }
