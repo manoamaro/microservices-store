@@ -83,9 +83,31 @@ func (r *CartsRepository) AddProduct(userHexId string, product models.Product, q
 
 		filter := bson.D{{"user_id", userId}}
 		update := bson.D{
-			{"$addToSet", bson.D{{"products", bson.D{{"_id", product.Id}, {"quantity", quantity}}}}},
-			{"$inc", bson.D{{"total", productPrice.Price * float64(quantity)}}},
-		}
+			{"$addToSet", bson.D{
+				{"products", bson.D{
+					{"_id", product.Id},
+					{"price", productPrice.Price},
+					{"quantity", quantity},
+				}},
+			}},
+			{"$set", bson.D{{
+				"total", bson.D{{
+					"$reduce", bson.D{
+						{"input", "$products"},
+						{"initialValue", 0},
+						{"in", bson.D{
+							{"$sum", bson.A{
+								"$$value",
+								bson.D{
+									{"$multiply", bson.A{
+										"$products.price", "$products.quantity",
+									}},
+								}},
+							}},
+						},
+					}},
+				}}}}}
+
 		options := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
 
 		res := r.collection.FindOneAndUpdate(r.context, filter, update, options)
