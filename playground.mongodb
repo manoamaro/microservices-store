@@ -1,0 +1,49 @@
+use('testing');
+
+const userId = 1
+const productId = ObjectId("6389d29c986e912d9a84b545")
+const quantity = 5
+
+// Reserve the product to the user
+db.products.findOneAndUpdate(
+  {"_id": productId, inventory: {$gte: quantity}},
+  {
+    $set: {updatedAt: "$$NOW"},
+    $set: {inventory: {$add: ["$inventory", -quantity]}}
+  },
+  {returnDocument: "after"}
+)
+
+
+db.carts.findOneAndUpdate(
+  {userId: userId, status: "active"},
+  [
+    {$set: {updatedAt: "$$NOW"}},
+    {$set: {
+      products: {
+        $cond: [
+          { $in: [productId, "$products.id"] },
+          {
+            $map: {
+              input: "$products",
+              in: {
+                $mergeObjects: [
+                  "$$this",
+                  {
+                    $cond: [
+                      { $eq: ["$$this.id", productId] },
+                      {id: productId, quantity: quantity},
+                      {}
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {$concatArrays: ["$products", [{id: productId, quantity: quantity}]]}
+        ]
+      }
+    }}
+  ],
+  {upsert: true, returnDocument: "after"}
+)
