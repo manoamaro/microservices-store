@@ -45,5 +45,5 @@ Accept: application/json
 
 {
     "product_id": "{{productId}}",
-    "quantity": 3
+    "quantity": -1
 }

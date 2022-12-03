@@ -9,12 +9,22 @@ type Product struct {
 	Prices      []Price            `bson:"prices" json:"prices"`
 	Images      []string           `bson:"images" json:"images"`
 	Reviews     []Review           `bson:"reviews" json:"reviews"`
+	Inventory   int                `bson:"inventory" json:"inventory"`
 	Deleted     bool               `bson:"deleted" json:"deleted"`
 }
 
+func (p Product) GetPrice(currency string) *Price {
+	for _, v := range p.Prices {
+		if v.Currency == currency {
+			return &v
+		}
+	}
+	return nil
+}
+
 type Price struct {
-	Currency string  `bson:"currency" json:"currency"`
-	Price    float64 `bson:"price" json:"price"`
+	Currency string `bson:"currency" json:"currency"`
+	Price    int    `bson:"price" json:"price"`
 }
 
 type Review struct {

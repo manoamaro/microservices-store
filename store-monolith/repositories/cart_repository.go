@@ -1,27 +1,23 @@
 package repositories
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/manoamaro/microservice-store/monolith/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type CartsRepository struct {
-	context    context.Context
-	db         *mongo.Database
-	collection *mongo.Collection
+	r                 *Repository[models.Cart]
+	productRepository *ProductsRepository
 }
 
-func NewCartsRepository(mongoDB *mongo.Database) *CartsRepository {
+func NewCartsRepository(mongoDB *mongo.Database, productRepository *ProductsRepository) *CartsRepository {
 	return &CartsRepository{
-		context:    context.Background(),
-		db:         mongoDB,
-		collection: mongoDB.Collection("Carts"),
+		r:                 (*Repository[models.Cart])(NewRepository[models.Cart](mongoDB, "Carts")),
+		productRepository: productRepository,
 	}
 }
 
@@ -29,39 +25,17 @@ func (r *CartsRepository) GetCartForUser(userHexId string) (*models.Cart, error)
 	if userId, err := primitive.ObjectIDFromHex(userHexId); err != nil {
 		return nil, err
 	} else {
-		cart := &models.Cart{}
-
-		res := r.collection.FindOne(r.context, bson.M{
-			"user_id": bson.M{
-				"$eq": userId,
-			},
-		})
-
-		if err := res.Decode(cart); err != nil {
-			return nil, err
-		} else {
-			return cart, nil
-		}
+		return r.r.Find(bson.M{"user_id": userId})
 	}
 }
 
 func (r *CartsRepository) GetOrCreateCart(userId primitive.ObjectID, currency string) (*models.Cart, error) {
-	filter := bson.D{{"user_id", userId}}
-	update := bson.D{
-		{"$setOnInsert", bson.D{{"currency", currency}}},
+	filter := bson.M{"user_id": userId}
+	update := bson.M{
+		"$setOnInsert": bson.M{"currency": currency},
 	}
-	options := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
 
-	if res := r.collection.FindOneAndUpdate(r.context, filter, update, options); res.Err() != nil {
-		return nil, res.Err()
-	} else {
-		cart := &models.Cart{}
-		if err := res.Decode(cart); err != nil {
-			return nil, err
-		} else {
-			return cart, nil
-		}
-	}
+	return r.r.FindOneAndUpdate(filter, update, true)
 }
 
 func (r *CartsRepository) AddProduct(userHexId string, product models.Product, quantity int) (*models.Cart, error) {
@@ -73,52 +47,106 @@ func (r *CartsRepository) AddProduct(userHexId string, product models.Product, q
 			return nil, err
 		}
 
-		productPrice := Find(product.Prices, func(t models.Price) bool {
-			return t.Currency == cart.Currency
-		})
-
-		if productPrice == nil {
-			return nil, fmt.Errorf("products does not contain price in %s", cart.Currency)
+		price := product.GetPrice(cart.Currency)
+		if price == nil {
+			return nil, fmt.Errorf("product does not have price in %s", cart.Currency)
 		}
 
-		filter := bson.D{{"user_id", userId}}
-		update := bson.D{
-			{"$addToSet", bson.D{
-				{"products", bson.D{
-					{"_id", product.Id},
-					{"price", productPrice.Price},
-					{"quantity", quantity},
-				}},
-			}},
-			{"$set", bson.D{{
-				"total", bson.D{{
-					"$reduce", bson.D{
+		if inventoryUpdated, err := r.productRepository.DicreaseInventory(product.Id.Hex(), quantity); err != nil {
+			return nil, err
+		} else if !inventoryUpdated {
+			return nil, fmt.Errorf("inventory could not get updated")
+		}
+
+		filter := bson.M{"_id": cart.Id}
+
+		setAddProduct := bson.M{
+			"$set": bson.M{
+				"products": bson.M{
+					"$cond": bson.A{
+						bson.M{"$in": bson.A{product.Id, "$products.id"}},
+						bson.M{
+							"$map": bson.D{
+								{"input", "$products"},
+								{"in", bson.M{
+									"$cond": bson.A{
+										bson.M{"$gt": bson.A{bson.M{"$add": bson.A{"$$this.quantity", quantity}}, 0}},
+										bson.M{
+											"$mergeObjects": bson.A{
+												"$$this",
+												bson.M{
+													"$cond": bson.A{
+														bson.M{"$eq": bson.A{"$$this.id", product.Id}},
+														bson.D{
+															{"quantity", bson.M{"$add": bson.A{"$$this.quantity", quantity}}},
+															{"value", price.Price},
+														},
+														bson.M{},
+													},
+												},
+											},
+										},
+										nil,
+									},
+								}},
+							},
+						},
+						bson.M{
+							"$cond": bson.A{
+								bson.M{"$gt": bson.A{quantity, 0}},
+								bson.M{
+									"$concatArrays": bson.A{"$products", bson.A{
+										bson.D{
+											{"id", product.Id},
+											{"value", price.Price},
+											{"quantity", quantity},
+										},
+									}},
+								},
+								"$products",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		setTotal := bson.M{
+			"$set": bson.M{
+				"total": bson.M{
+					"$reduce": bson.D{
 						{"input", "$products"},
 						{"initialValue", 0},
-						{"in", bson.D{
-							{"$sum", bson.A{
+						{"in", bson.M{
+							"$add": bson.A{
 								"$$value",
-								bson.D{
-									{"$multiply", bson.A{
-										"$products.price", "$products.quantity",
-									}},
-								}},
-							}},
-						},
-					}},
-				}}}}}
-
-		options := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
-
-		res := r.collection.FindOneAndUpdate(r.context, filter, update, options)
-
-		if res.Err() != nil {
-			return nil, res.Err()
-		} else if err := res.Decode(cart); err != nil {
-			return nil, err
-		} else {
-			return cart, nil
+								bson.M{
+									"$multiply": bson.A{"$$this.quantity", "$$this.value"},
+								},
+							},
+						}},
+					},
+				},
+			},
 		}
+
+		update := bson.A{
+			setAddProduct,
+			bson.M{
+				"$set": bson.M{
+					"products": bson.M{
+						"$filter": bson.D{
+							{"input", "$products"},
+							{"cond", bson.M{"$ne": bson.A{"$$this", nil}}},
+						},
+					},
+				},
+			},
+			setTotal,
+			bson.M{"$set": bson.M{"updatedAt": "$NOW"}},
+		}
+
+		return r.r.FindOneAndUpdate(filter, update, true)
 	}
 }
 

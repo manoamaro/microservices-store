@@ -1,49 +1,70 @@
-use('testing');
+use('StoreMonolith');
 
-const userId = 1
-const productId = ObjectId("6389d29c986e912d9a84b545")
-const quantity = 5
+const userId = ObjectId("637a2fc4b0614ced185f733d")
+const productId = ObjectId("63793384b0614ced185f7322")
+const quantity = -1
 
-// Reserve the product to the user
-db.products.findOneAndUpdate(
-  {"_id": productId, inventory: {$gte: quantity}},
-  {
-    $set: {updatedAt: "$$NOW"},
-    $set: {inventory: {$add: ["$inventory", -quantity]}}
-  },
-  {returnDocument: "after"}
-)
-
-
-db.carts.findOneAndUpdate(
-  {userId: userId, status: "active"},
-  [
-    {$set: {updatedAt: "$$NOW"}},
-    {$set: {
-      products: {
-        $cond: [
-          { $in: [productId, "$products.id"] },
+const productMap = {
+  $map: {
+    input: "$products",
+    in: {
+      $cond: [
+        {$gt: [{$add: ["$$this.quantity", quantity]}, 0]},
+        { $mergeObjects: [
+          "$$this",
           {
-            $map: {
-              input: "$products",
-              in: {
-                $mergeObjects: [
-                  "$$this",
-                  {
-                    $cond: [
-                      { $eq: ["$$this.id", productId] },
-                      {id: productId, quantity: quantity},
-                      {}
-                    ]
-                  }
-                ]
-              }
-            }
-          },
-          {$concatArrays: ["$products", [{id: productId, quantity: quantity}]]}
-        ]
+            $cond: [
+              { $eq: ["$$this.id", productId] },
+              {id: productId, quantity: quantity, value: 100},
+              {}
+            ]
+          }
+        ]},
+        null
+      ]
+    }
+  }
+}
+
+const productsSet = {
+    products: {
+      $cond: [
+        { $in: [productId, "$products.id"] },
+        productMap,
+        {$concatArrays: ["$products", [{id: productId, quantity: quantity, value: 100}]]}
+      ]
+    }
+  }
+
+db.Carts.findOneAndUpdate(
+  {user_id: userId, status: "active"},
+  [
+    {$set: productsSet},
+    {$set: {"products": {
+      "$filter": {
+        "input": "$products",
+        "cond": {
+          $ne: ["$$this", null]
+        }
       }
-    }}
+    }}},
+    {
+      $set: {
+        total: {
+          $reduce: {
+            input: "$products",
+            initialValue: 0,
+            in: {
+              $add: [
+                "$$value",
+                { $multiply: ["$$this.quantity", "$$this.value"] }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {$set: {updatedAt: "$$NOW"}},
   ],
-  {upsert: true, returnDocument: "after"}
+  {returnDocument: "after"}
 )

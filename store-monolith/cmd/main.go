@@ -25,7 +25,7 @@ func main() {
 
 	productsRepository := repositories.NewProductsRepository(mongoDB)
 	usersRepository := repositories.NewUsersRepository(mongoDB)
-	cartsRepository := repositories.NewCartsRepository(mongoDB)
+	cartsRepository := repositories.NewCartsRepository(mongoDB, productsRepository)
 
 	router := gin.Default()
 
@@ -122,13 +122,7 @@ func main() {
 		}
 	})
 
-	router.PUT("/cart/:itemId", authMiddleware, func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-
-	router.DELETE("/cart/:itemId", authMiddleware, func(ctx *gin.Context) {
+	router.DELETE("/cart/:productId", authMiddleware, func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
 			"message": "pong",
 		})

@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"context"
 	"crypto/sha256"
 	"fmt"
 
@@ -13,35 +12,22 @@ import (
 const usersCollection string = "Users"
 
 type UsersRepository struct {
-	context    context.Context
-	db         *mongo.Database
-	collection *mongo.Collection
+	r *Repository[models.User]
 }
 
 func NewUsersRepository(mongoDB *mongo.Database) *UsersRepository {
 	return &UsersRepository{
-		context:    context.Background(),
-		db:         mongoDB,
-		collection: mongoDB.Collection(usersCollection),
+		r: (*Repository[models.User])(NewRepository[models.User](mongoDB, usersCollection)),
 	}
 }
 
 func (d *UsersRepository) Login(email string, password string) (*models.User, error) {
-	res := d.collection.FindOne(d.context, bson.M{
-		"email": bson.M{
-			"$eq": email,
-		},
-	})
-
-	result := &models.User{}
-	if err := res.Decode(result); err != nil {
+	if user, err := d.r.Find(bson.M{"email": email}); err != nil {
 		return nil, err
+	} else if checkPassword(*user, password) {
+		return user, nil
 	} else {
-		if checkPassword(*result, password) {
-			return result, nil
-		} else {
-			return nil, fmt.Errorf("invalid username and/or password")
-		}
+		return nil, fmt.Errorf("invalid username and/or password")
 	}
 }
 
