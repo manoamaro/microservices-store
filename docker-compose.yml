@@ -30,7 +30,8 @@ services:
   auth:
     build:
       context: .
-      dockerfile: auth_service/Dockerfile
+      args:
+        BUILD_FOLDER: auth_service
     restart: on-failure
     depends_on:
       - postgres
@@ -49,7 +50,8 @@ services:
   products:
     build:
       context: .
-      dockerfile: products_service/Dockerfile
+      args:
+        BUILD_FOLDER: products_service
     depends_on:
       - mongo
     restart: on-failure

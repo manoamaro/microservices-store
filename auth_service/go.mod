@@ -1,6 +1,6 @@
 module github.com/manoamaro/microservices-store/auth_service
 
-go 1.18
+go 1.20
 
 
 require (

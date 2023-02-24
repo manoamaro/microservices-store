@@ -1,6 +1,6 @@
 module github.com/manoamaro/microservices-store/commons
 
-go 1.18
+go 1.20
 
 require github.com/gin-gonic/gin v1.8.1
 

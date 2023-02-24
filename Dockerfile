@@ -1,17 +1,18 @@
 FROM golang:alpine AS builder
 
+ARG BUILD_FOLDER
 ENV CGO_ENABLED=0
+
+RUN apk update && apk add git
 
 RUN mkdir /app
 WORKDIR /app
 
-COPY go.* ./
+COPY . .
 
 RUN go mod download
 
-COPY . .
-
-RUN go build -o ./app
+RUN go build -o ./app ${BUILD_FOLDER}/cmd/main.go
 
 FROM scratch
 

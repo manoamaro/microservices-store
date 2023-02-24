@@ -9,3 +9,6 @@ build:
 publish: build
 	echo $(DOCKER_PASSWORD) | docker login ghcr.io -u $(DOCKER_USERNAME) --password-stdin
 	$(foreach service,$(services),$(call publish_fn,$(service));)
+
+monolith:
+	go run store-monolith/cmd/main.go

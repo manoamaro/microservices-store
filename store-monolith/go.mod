@@ -1,6 +1,6 @@
 module github.com/manoamaro/microservice-store/monolith
 
-go 1.19
+go 1.20
 
 require (
 	github.com/cucumber/godog v0.12.5
