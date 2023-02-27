@@ -1,7 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"log"
+
+	"github.com/manoamaro/microservices-store/inventory_service/internal"
+)
 
 func main() {
-	fmt.Println("HELLO WORLD")
+	app := internal.NewApplication()
+	app.RunMigrations()
+	app.RegisterControllers()
+	err := make(chan error)
+	app.Run(err)
+	log.Fatal(<-err)
 }

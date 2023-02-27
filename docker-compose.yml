@@ -56,8 +56,9 @@ services:
       - mongo
     restart: on-failure
     environment:
-      MONGO_URL: mongodb://admin:admin@mongo:27017
       AUTH_URL: http://auth:8082
+      INVENTORY_URL: http://inventory:8083
+      MONGO_URL: mongodb://admin:admin@mongo:27017
       VIRTUAL_HOST: product.local
       PORT: 8081
       environment: prod
@@ -66,5 +67,20 @@ services:
     ports:
       - "8081:8081"
 
-
-
+  inventory:
+    build:
+      context: .
+      args:
+        BUILD_FOLDER: inventory_service
+    restart: on-failure
+    depends_on:
+      - postgres
+    environment:
+      DB_URL: "postgres://postgres:postgres@postgres:5432/inventory?sslmode=disable"
+      VIRTUAL_HOST: auth.local
+      PORT: 8083
+      environment: prod
+    expose:
+      - 8083
+    ports:
+      - "8083:8083"

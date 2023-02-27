@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/auth_service/internal/repositories"
 	"github.com/manoamaro/microservices-store/auth_service/models"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
-	"net/http"
 )
 
 type AuthController struct {
@@ -72,6 +74,7 @@ func (a *AuthController) signInHandler(c *gin.Context) {
 
 func (a *AuthController) verifyHandler(c *gin.Context) {
 	userClaims := c.MustGet("claims").(*models.UserClaims)
+	fmt.Println(userClaims)
 	c.JSON(http.StatusOK, gin.H{
 		"audiences": userClaims.Audience,
 		"flags":     userClaims.Flags,

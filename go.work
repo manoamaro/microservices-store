@@ -1,8 +1,9 @@
 go 1.20
 
 use (
-	./commons
 	./auth_service
+	./commons
+	./inventory_service
 	./products_service
 	./store-monolith
 )
