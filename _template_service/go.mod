@@ -1,3 +1,3 @@
-module manoamaro.github.com/template_service
+module github.com/manoamaro/microservices-store/template
 
-go 1.17
+go 1.20
