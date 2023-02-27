@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-playground/assert/v2 v2.0.1
-	github.com/sony/gobreaker v0.5.0
 	go.mongodb.org/mongo-driver v1.9.0
 	golang.org/x/exp v0.0.0-20220823124025-807a23277127
 )

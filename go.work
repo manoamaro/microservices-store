@@ -5,5 +5,4 @@ use (
 	./commons
 	./inventory_service
 	./products_service
-	./store-monolith
 )
