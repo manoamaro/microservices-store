@@ -1,21 +1,20 @@
 package controller
 
 import (
-	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
+	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"github.com/manoamaro/microservices-store/products_service/internal/models"
 	"github.com/manoamaro/microservices-store/products_service/internal/repository"
-	"github.com/manoamaro/microservices-store/products_service/internal/services"
 	"net/http"
 )
 
 type AdminProductController struct {
-	authService services.AuthService
+	authService infra.AuthService
 	ProductController
 }
 
-func NewAdminProductController(r *gin.Engine, productsRepository repository.ProductsRepository, authService services.AuthService) *AdminProductController {
+func NewAdminProductController(r *gin.Engine, productsRepository repository.ProductsRepository, authService infra.AuthService) *AdminProductController {
 	productsController := ProductController{productsRepository}
 	controller := &AdminProductController{
 		authService,
@@ -24,7 +23,7 @@ func NewAdminProductController(r *gin.Engine, productsRepository repository.Prod
 
 	mgmtGroup := r.Group("/admin")
 	{
-		mgmtGroup.Use(AuthMiddleware(authService, []string{"products_admin"}))
+		mgmtGroup.Use(helpers.AuthMiddleware(authService, "products_admin"))
 		mgmtGroup.GET("/list", controller.listProductsHandler)
 		mgmtGroup.POST("/create", controller.postProductsHandler)
 	}
@@ -39,17 +38,5 @@ func (a *AdminProductController) postProductsHandler(c *gin.Context) {
 		helpers.BadRequest(err, c)
 	} else {
 		c.JSON(http.StatusCreated, savedProduct)
-	}
-}
-
-func AuthMiddleware(authService services.AuthService, requiredDomains []string) func(context *gin.Context) {
-	return func(context *gin.Context) {
-		token := context.GetHeader("Authorization")
-		err, isValid := authService.Validate(token, requiredDomains)
-		if err != nil {
-			helpers.UnauthorizedRequest(err, context)
-		} else if !isValid {
-			helpers.UnauthorizedRequest(errors.New("not authorised"), context)
-		}
 	}
 }

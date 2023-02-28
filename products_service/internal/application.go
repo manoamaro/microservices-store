@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
@@ -17,7 +18,7 @@ const ProductsServiceDatabase = "ProductsService"
 
 type Application struct {
 	ProductsRepository repository.ProductsRepository
-	AuthService        services.AuthService
+	AuthService        infra.AuthService
 	InventoryService   services.InventoryService
 }
 
@@ -30,19 +31,16 @@ func NewApplication() *Application {
 }
 
 func newProdApplication() *Application {
-	authUrl := helpers.GetEnv("AUTH_URL", "http://localhost:8081")
-	inventoryUrl := helpers.GetEnv("INVENTORY_URL", "http://localhost:8081")
+	authUrl := helpers.GetEnv("AUTH_SERVICE_URL", "http://localhost:8081")
 	mongoUrl := helpers.GetEnv("MONGO_URL", "mongodb://test:test@localhost:27017/?maxPoolSize=20&w=majority")
 	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoUrl))
 	if err != nil {
 		panic(err)
 	}
 	mongoDB := mongoClient.Database(ProductsServiceDatabase)
-	inventoryService := services.NewDefaultInventoryService(inventoryUrl)
 	return &Application{
-		ProductsRepository: repository.NewDefaultProductsRepository(mongoDB, inventoryService),
-		AuthService:        services.NewDefaultAuthService(authUrl),
-		InventoryService:   inventoryService,
+		ProductsRepository: repository.NewDefaultProductsRepository(mongoDB),
+		AuthService:        infra.NewDefaultAuthService(authUrl),
 	}
 }
 

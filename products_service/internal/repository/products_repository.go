@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/manoamaro/microservices-store/products_service/internal/models"
-	"github.com/manoamaro/microservices-store/products_service/internal/services"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,16 +20,14 @@ type ProductsRepository interface {
 }
 
 type DefaultProductsRepository struct {
-	context          context.Context
-	db               *mongo.Database
-	inventoryService services.InventoryService
+	context context.Context
+	db      *mongo.Database
 }
 
-func NewDefaultProductsRepository(db *mongo.Database, inventoryService services.InventoryService) ProductsRepository {
+func NewDefaultProductsRepository(db *mongo.Database) ProductsRepository {
 	return &DefaultProductsRepository{
-		context:          context.Background(),
-		db:               db,
-		inventoryService: inventoryService,
+		context: context.Background(),
+		db:      db,
 	}
 }
 
@@ -43,14 +40,6 @@ func (d *DefaultProductsRepository) ListProducts() ([]models.Product, error) {
 	err = cursor.All(d.context, &result)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, p := range result {
-		if a, err := d.inventoryService.AmountOf(p.Id.Hex()); err != nil {
-			return nil, err
-		} else {
-			p.Inventory = a
-		}
 	}
 
 	return result, nil

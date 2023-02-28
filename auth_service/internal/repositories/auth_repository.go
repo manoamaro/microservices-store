@@ -111,7 +111,7 @@ func (s *DefaultAuthRepository) getRedisInvalidTokenKey(rawToken string) string 
 
 func (s *DefaultAuthRepository) CreateToken(auth *models.Auth) (string, error) {
 	var audiences []models.Audience
-	s.ormDB.Preload(clause.Associations).Where(&models.Audience{Auth: auth}).First(&audiences)
+	s.ormDB.Preload(clause.Associations).Where(&models.Audience{Auth: auth}).Find(&audiences)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, models.UserClaims{
 		jwt.RegisteredClaims{
 			ID:        strconv.Itoa(int(auth.ID)),

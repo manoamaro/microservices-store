@@ -3,6 +3,7 @@ package internal
 import (
 	"database/sql"
 	"fmt"
+	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"log"
 	"net/http"
 	"time"
@@ -19,13 +20,14 @@ type Application struct {
 	db                  *sql.DB
 	r                   *gin.Engine
 	inventoryRepository repository.InventoryRepository
+	authService         infra.AuthService
 }
 
 func NewApplication() *Application {
-	db, err := sql.Open(
-		"postgres",
-		helpers.GetEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/inventory?sslmode=disable"),
-	)
+	postgresUrl := helpers.GetEnv("POSTGRES_URL", "postgres://postgres:postgres@localhost:5432/inventory_service?sslmode=disable")
+	authUrl := helpers.GetEnv("AUTH_SERVICE_URL", "http://localhost:8080")
+
+	db, err := sql.Open("postgres", postgresUrl)
 
 	if err != nil {
 		log.Fatal(err)
@@ -37,6 +39,7 @@ func NewApplication() *Application {
 		db:                  db,
 		r:                   r,
 		inventoryRepository: repository.NewDefaultInventoryRepository(db),
+		authService:         infra.NewDefaultAuthService(authUrl),
 	}
 }
 
@@ -53,7 +56,7 @@ func (a *Application) RunMigrations() {
 }
 
 func (a *Application) RegisterControllers() {
-	controller := controller.NewInventoryController(a.r, a.inventoryRepository)
+	controller := controller.NewInventoryController(a.r, a.authService, a.inventoryRepository)
 	controller.RegisterRoutes()
 }
 

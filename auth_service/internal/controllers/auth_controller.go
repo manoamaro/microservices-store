@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,12 +23,12 @@ func NewAuthController(r *gin.Engine, repository repositories.AuthRepository) *A
 }
 
 func (a *AuthController) RegisterRoutes() {
-	authRoute := a.r.Group("/auth")
+	public := a.r.Group("/public")
 	{
-		authRoute.POST("/sign_up", a.signUpHandler)
-		authRoute.POST("/sign_in", a.signInHandler)
+		public.POST("/sign_up", a.signUpHandler)
+		public.POST("/sign_in", a.signInHandler)
 
-		authorizedRoutes := authRoute.Group("/")
+		authorizedRoutes := public.Group("/")
 		authorizedRoutes.Use(func(c *gin.Context) {
 			claims, token, err := a.authRepository.GetTokenFromRequest(c.Request)
 			if err != nil {
@@ -54,7 +53,7 @@ func (a *AuthController) signUpHandler(c *gin.Context) {
 		helpers.BadRequest(err, c)
 	} else {
 		c.Header("Authorization", "bearer "+signedString)
-		c.Writer.WriteHeader(http.StatusOK)
+		c.JSON(http.StatusOK, gin.H{"token": signedString})
 	}
 }
 
@@ -68,13 +67,12 @@ func (a *AuthController) signInHandler(c *gin.Context) {
 		helpers.BadRequest(err, c)
 	} else {
 		c.Header("Authorization", "bearer "+signedString)
-		c.Status(http.StatusOK)
+		c.JSON(http.StatusOK, gin.H{"token": signedString})
 	}
 }
 
 func (a *AuthController) verifyHandler(c *gin.Context) {
 	userClaims := c.MustGet("claims").(*models.UserClaims)
-	fmt.Println(userClaims)
 	c.JSON(http.StatusOK, gin.H{
 		"audiences": userClaims.Audience,
 		"flags":     userClaims.Flags,

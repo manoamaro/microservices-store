@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -33,7 +33,7 @@ func NewService(host string, name string, maxRequests int, interval int) Service
 	}
 }
 
-func Req[T any](client *http.Client, method string, path string, body any) (*T, error) {
+func Req[T any](client *http.Client, method string, path string, headers map[string]string, body any) (*T, error) {
 
 	var reqBody []byte
 	if body != nil {
@@ -46,20 +46,25 @@ func Req[T any](client *http.Client, method string, path string, body any) (*T, 
 
 	if request, err := http.NewRequest(method, path, bytes.NewReader(reqBody)); err != nil {
 		return nil, err
-	} else if response, err := client.Do(request); err != nil {
-		return nil, err
-	} else if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error fetching inventory")
 	} else {
-		defer response.Body.Close()
-		if body, err := ioutil.ReadAll(response.Body); err != nil {
+		for k, v := range headers {
+			request.Header.Add(k, v)
+		}
+		if response, err := client.Do(request); err != nil {
 			return nil, err
+		} else if response.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("error fetching inventory")
 		} else {
-			var res T
-			if err := json.Unmarshal(body, &res); err != nil {
+			defer response.Body.Close()
+			if body, err := io.ReadAll(response.Body); err != nil {
 				return nil, err
+			} else {
+				var res T
+				if err := json.Unmarshal(body, &res); err != nil {
+					return nil, err
+				}
+				return &res, nil
 			}
-			return &res, nil
 		}
 	}
 }

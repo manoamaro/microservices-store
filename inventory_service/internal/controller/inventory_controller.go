@@ -2,24 +2,31 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
+	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"github.com/manoamaro/microservices-store/inventory_service/internal/repository"
 )
 
 type InventoryController struct {
 	r                   *gin.Engine
+	authService         infra.AuthService
 	inventoryRepository repository.InventoryRepository
 }
 
-func NewInventoryController(r *gin.Engine, inventoryRepository repository.InventoryRepository) InventoryController {
+func NewInventoryController(r *gin.Engine, authService infra.AuthService, inventoryRepository repository.InventoryRepository) InventoryController {
 	return InventoryController{
 		r:                   r,
+		authService:         authService,
 		inventoryRepository: inventoryRepository,
 	}
 }
 func (a *InventoryController) RegisterRoutes() {
-	a.r.GET("/inventory/:product_id", a.amountOfHandler)
-	a.r.POST("/inventory/add", a.addHandler)
-	a.r.POST("/inventory/subtract", a.subtractHandler)
+	public := a.r.Group("/public")
+	public.GET("/inventory/:product_id", a.amountOfHandler)
+
+	internal := a.r.Group("/internal", helpers.AuthMiddleware(a.authService, "inventory"))
+	internal.POST("/inventory/add", a.addHandler)
+	internal.POST("/inventory/subtract", a.subtractHandler)
 }
 
 func (a *InventoryController) amountOfHandler(c *gin.Context) {
@@ -39,9 +46,10 @@ func (a *InventoryController) addHandler(c *gin.Context) {
 		ProductId string `json:"product_id" binding:"required"`
 		Amount    uint   `json:"amount" binding:"required"`
 	}
-	c.BindJSON(&request)
-	amount := a.inventoryRepository.Add(request.ProductId, request.Amount)
-	c.JSON(200, gin.H{"amount": amount})
+	if err := c.BindJSON(&request); err == nil {
+		amount := a.inventoryRepository.Add(request.ProductId, request.Amount)
+		c.JSON(200, gin.H{"amount": amount})
+	}
 }
 
 func (a *InventoryController) subtractHandler(c *gin.Context) {
@@ -49,7 +57,8 @@ func (a *InventoryController) subtractHandler(c *gin.Context) {
 		ProductId string `json:"product_id" binding:"required"`
 		Amount    uint   `json:"amount" binding:"required"`
 	}
-	c.BindJSON(&request)
-	amount := a.inventoryRepository.Subtract(request.ProductId, request.Amount)
-	c.JSON(200, gin.H{"amount": amount})
+	if err := c.BindJSON(&request); err == nil {
+		amount := a.inventoryRepository.Subtract(request.ProductId, request.Amount)
+		c.JSON(200, gin.H{"amount": amount})
+	}
 }

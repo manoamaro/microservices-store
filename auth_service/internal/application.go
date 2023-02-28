@@ -3,15 +3,16 @@ package internal
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/manoamaro/microservices-store/auth_service/internal/controllers"
 	"github.com/manoamaro/microservices-store/auth_service/internal/repositories"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
-	"log"
-	"net/http"
-	"time"
 )
 
 type Application struct {
@@ -24,7 +25,7 @@ type Application struct {
 func NewApplication() *Application {
 	db, err := sql.Open(
 		"postgres",
-		helpers.GetEnv("DB_URL", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"),
+		helpers.GetEnv("POSTGRES_URL", "postgres://postgres:postgres@localhost:5432/auth_service?sslmode=disable"),
 	)
 
 	if err != nil {

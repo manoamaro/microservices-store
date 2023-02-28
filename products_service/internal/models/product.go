@@ -11,7 +11,6 @@ type Product struct {
 	Prices      []Price            `bson:"prices" json:"prices"`
 	Images      []string           `bson:"images" json:"images"`
 	Reviews     []Review           `bson:"reviews" json:"reviews"`
-	Inventory   int                `bson:"-" json:"inventory"`
 	Deleted     bool               `bson:"deleted" json:"-"`
 }
 

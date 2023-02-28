@@ -1,49 +1,78 @@
-@host=http://localhost:8080
 
-# @name listProducts
-GET {{host}}/products
-Accept: application/json
-
-###
-
-@productId={{listProducts.response.body.$[0].id}}
-
-GET {{host}}/products/{{productId}}
-Accept: application/json
-
-###
-
-GET {{host}}/products?query=product
-Accept: application/json
-
-###
-
-POST {{host}}/products/{{productId}}/review
+POST {{auth_host}}/public/sign_in
+Content-Type: application/json
 
 {
-    "stars": 2,
-    "comment": "New Review 22"
+    "email": "admin@admin.com",
+    "password": "admin"
 }
+
+> {% client.global.set("auth_token", response.body.token); %}
+
+###
+GET {{auth_host}}/public/verify
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
 ###
 
-POST {{host}}/user/login
+GET {{products_host}}/admin/list
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+###
+
+POST {{products_host}}/admin/create
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
 
 {
-    "email": "email@example.com",
-    "password": "123456"
+  "name": "Product {{$random.alphabetic(10)}}",
+  "description": "Product {{$random.alphabetic(10)}}",
+  "prices": [{
+    "currency": "EUR",
+    "price": {{$random.float()}}
+  }]
 }
 
 ###
 
-GET {{host}}/cart
+
+GET {{products_host}}/public
+Accept: application/json
+
+> {% client.global.set("productId", response.body[0].id); %}
+###
+
+GET {{products_host}}/public/{{productId}}
 Accept: application/json
 
 ###
 
-PUT {{host}}/cart
+GET {{inventory_host}}/public/inventory/{{productId}}
 Accept: application/json
 
+###
+
+
+POST {{inventory_host}}/internal/inventory/add
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
 {
-    "product_id": "{{productId}}",
-    "quantity": -1
+  "product_id": "{{productId}}",
+  "amount": 1
 }
+
+###
+
+POST {{inventory_host}}/internal/inventory/subtract
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "product_id": "{{productId}}",
+  "amount": 1
+}
+
+###
