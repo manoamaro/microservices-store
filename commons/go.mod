@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/gin-gonic/gin v1.8.1
-	github.com/sony/gobreaker v0.5.0
+	github.com/manoamaro/gobreaker/v2 v2.0.0
 )
 
 require (

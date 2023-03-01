@@ -9,7 +9,7 @@ import (
 func AuthMiddleware(authService infra.AuthService, requiredDomains ...string) func(context *gin.Context) {
 	return func(context *gin.Context) {
 		token := context.GetHeader("Authorization")
-		err, isValid := authService.Validate(token, requiredDomains...)
+		isValid, err := authService.Validate(token, requiredDomains...)
 		if err != nil {
 			UnauthorizedRequest(err, context)
 		} else if !isValid {

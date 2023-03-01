@@ -1,8 +1,8 @@
 package mock
 
-type MockAuthService struct {
+type AuthService struct {
 }
 
-func (m *MockAuthService) Validate(token string, audiences ...string) (error, bool) {
-	return nil, true
+func (m *AuthService) Validate(token string, audiences ...string) (bool, error) {
+	return true, nil
 }

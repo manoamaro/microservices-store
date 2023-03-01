@@ -46,8 +46,8 @@ func newProdApplication() *Application {
 
 func newDevApplication() *Application {
 	return &Application{
-		ProductsRepository: mock.NewMockProductsRepository(),
-		AuthService:        &mock.MockAuthService{},
+		ProductsRepository: mock.NewProductsRepository(),
+		AuthService:        &mock.AuthService{},
 	}
 }
 

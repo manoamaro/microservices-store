@@ -15,12 +15,19 @@ type InventoryService interface {
 }
 
 type DefaultInventoryService struct {
-	infra.Service
+	*infra.Service
+	amountOfEndpoint *infra.Endpoint[int]
+	addEndpoint      *infra.Endpoint[int]
+	subtractEndpoint *infra.Endpoint[int]
 }
 
 func NewDefaultInventoryService(host string) InventoryService {
+	service := infra.NewService(host)
 	return &DefaultInventoryService{
-		infra.NewService(host, "InventoryService", 10, 3000),
+		Service:          service,
+		amountOfEndpoint: infra.NewEndpoint[int](service, http.MethodGet, 10, 3000),
+		addEndpoint:      infra.NewEndpoint[int](service, http.MethodPost, 10, 3000),
+		subtractEndpoint: infra.NewEndpoint[int](service, http.MethodPost, 10, 3000),
 	}
 }
 
@@ -29,46 +36,22 @@ type Amount struct {
 }
 
 func (d *DefaultInventoryService) AmountOf(productId string) (int, error) {
-	response, err := d.CB.Execute(func() (interface{}, error) {
-		if res, err := infra.Req[Amount](d.Client, http.MethodGet, fmt.Sprintf("%s/inventory/%s", d.Host, productId), nil, nil); err != nil {
-			return nil, err
-		} else {
-			return res.Amount, nil
-		}
-	})
-	return response.(int), err
+	return d.amountOfEndpoint.Execute(fmt.Sprintf("/inventory/%s", productId), nil, nil)
 }
 
 func (d *DefaultInventoryService) Add(productId string, amount int) (int, error) {
-	response, err := d.CB.Execute(func() (interface{}, error) {
+	req := struct {
+		ProductId string
+		Amount    int
+	}{productId, amount}
 
-		req := struct {
-			ProductId string
-			Amount    int
-		}{productId, amount}
-
-		if res, err := infra.Req[Amount](d.Client, http.MethodPost, fmt.Sprintf("%s/inventory/add", d.Host), nil, req); err != nil {
-			return nil, err
-		} else {
-			return res.Amount, nil
-		}
-	})
-	return response.(int), err
+	return d.amountOfEndpoint.Execute("/inventory/add", nil, req)
 }
 
 func (d *DefaultInventoryService) Subtract(productId string, amount int) (int, error) {
-	response, err := d.CB.Execute(func() (interface{}, error) {
-
-		req := struct {
-			ProductId string
-			Amount    int
-		}{productId, amount}
-
-		if res, err := infra.Req[Amount](d.Client, http.MethodPost, fmt.Sprintf("%s/inventory/subtract", d.Host), nil, req); err != nil {
-			return nil, err
-		} else {
-			return res.Amount, nil
-		}
-	})
-	return response.(int), err
+	req := struct {
+		ProductId string
+		Amount    int
+	}{productId, amount}
+	return d.amountOfEndpoint.Execute("/inventory/subtract", nil, req)
 }

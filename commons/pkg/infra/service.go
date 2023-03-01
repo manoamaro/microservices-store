@@ -8,63 +8,90 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sony/gobreaker"
+	"github.com/manoamaro/gobreaker/v2"
 )
 
-type IService interface {
+type Endpoint[Res any] struct {
+	Method  string
+	service *Service
+	CB      *gobreaker.CircuitBreaker[Res]
 }
 
-type Service struct {
-	Host   string
-	Client *http.Client
-	CB     *gobreaker.CircuitBreaker
-}
+func NewEndpoint[T any](service *Service, method string, maxRequests uint32, interval time.Duration) *Endpoint[T] {
+	st := gobreaker.Settings{
+		Name:        "test",
+		MaxRequests: maxRequests,
+		Interval:    interval,
+	}
 
-func NewService(host string, name string, maxRequests int, interval int) Service {
-	var st gobreaker.Settings
-	st.Name = name
-	st.MaxRequests = uint32(maxRequests)
-	st.Interval = time.Duration(interval)
-
-	return Service{
-		Host:   host,
-		CB:     gobreaker.NewCircuitBreaker(st),
-		Client: &http.Client{},
+	return &Endpoint[T]{
+		Method:  method,
+		service: service,
+		CB:      gobreaker.NewCircuitBreaker[T](st),
 	}
 }
 
-func Req[T any](client *http.Client, method string, path string, headers map[string]string, body any) (*T, error) {
-
+func (e *Endpoint[Res]) Execute(path string, headers map[string]string, body any) (Res, error) {
 	var reqBody []byte
+	var response Res
+
 	if body != nil {
 		if _reqBody, err := json.Marshal(body); err != nil {
-			return nil, err
+			return response, err
 		} else {
 			reqBody = _reqBody
 		}
 	}
 
-	if request, err := http.NewRequest(method, path, bytes.NewReader(reqBody)); err != nil {
-		return nil, err
-	} else {
-		for k, v := range headers {
-			request.Header.Add(k, v)
-		}
-		if response, err := client.Do(request); err != nil {
-			return nil, err
+	fullPath := fmt.Sprintf("%s%s", e.service.Host, path)
+
+	request, err := http.NewRequest(e.Method, fullPath, bytes.NewReader(reqBody))
+	if err != nil {
+		return response, err
+	}
+
+	for k, v := range headers {
+		request.Header.Add(k, v)
+	}
+
+	response, err = e.CB.Execute(func() (Res, error) {
+		var r Res
+		if response, err := e.service.Client.Do(request); err != nil {
+			return r, err
 		} else if response.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("error fetching inventory")
+			return r, fmt.Errorf("error fetching inventory")
 		} else {
 			defer response.Body.Close()
 			if body, err := io.ReadAll(response.Body); err != nil {
-				return nil, err
+				return r, err
 			} else {
-				var res T
+				var res Res
 				if err := json.Unmarshal(body, &res); err != nil {
-					return nil, err
+					return r, err
 				}
-				return &res, nil
+				return res, nil
 			}
 		}
+	})
+	if err != nil {
+		return response, err
+	} else {
+		return response, nil
+	}
+}
+
+type IService interface {
+}
+
+type Service struct {
+	IService
+	Host   string
+	Client *http.Client
+}
+
+func NewService(host string) *Service {
+	return &Service{
+		Host:   host,
+		Client: &http.Client{},
 	}
 }

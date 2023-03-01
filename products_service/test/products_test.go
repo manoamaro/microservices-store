@@ -13,11 +13,11 @@ import (
 	"github.com/manoamaro/microservices-store/products_service/internal/models"
 )
 
-var productsRepository = mock.NewMockProductsRepository()
+var productsRepository = mock.NewProductsRepository()
 
 var application = internal.Application{
 	ProductsRepository: productsRepository,
-	AuthService:        &mock.MockAuthService{},
+	AuthService:        &mock.AuthService{},
 }
 
 var router = application.SetupRoutes()
