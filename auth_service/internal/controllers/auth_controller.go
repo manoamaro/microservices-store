@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"errors"
-	"net/http"
-
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/auth_service/internal/repositories"
 	"github.com/manoamaro/microservices-store/auth_service/models"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
+	"net/http"
+	"strconv"
 )
 
 type AuthController struct {
@@ -16,10 +17,12 @@ type AuthController struct {
 }
 
 func NewAuthController(r *gin.Engine, repository repositories.AuthRepository) *AuthController {
-	return &AuthController{
+	controller := &AuthController{
 		r:              r,
 		authRepository: repository,
 	}
+	controller.RegisterRoutes()
+	return controller
 }
 
 func (a *AuthController) RegisterRoutes() {
@@ -40,7 +43,13 @@ func (a *AuthController) RegisterRoutes() {
 		})
 		authorizedRoutes.GET("/verify", a.verifyHandler)
 		authorizedRoutes.DELETE("/invalidate", a.invalidateHandler)
+		public.POST("/refresh", a.refreshTokenHandler)
 	}
+}
+
+type SignResponse struct {
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (a *AuthController) signUpHandler(c *gin.Context) {
@@ -49,11 +58,13 @@ func (a *AuthController) signUpHandler(c *gin.Context) {
 		helpers.BadRequest(err, c)
 	} else if auth, err := a.authRepository.CreateAuth(request.Email, request.Password); err != nil {
 		helpers.BadRequest(err, c)
-	} else if signedString, err := a.authRepository.CreateToken(auth); err != nil {
+	} else if accessToken, refreshToken, err := a.authRepository.CreateTokens(auth.ID); err != nil {
 		helpers.BadRequest(err, c)
 	} else {
-		c.Header("Authorization", "bearer "+signedString)
-		c.JSON(http.StatusOK, gin.H{"token": signedString})
+		c.JSON(http.StatusOK, SignResponse{
+			Token:        accessToken,
+			RefreshToken: refreshToken,
+		})
 	}
 }
 
@@ -63,20 +74,52 @@ func (a *AuthController) signInHandler(c *gin.Context) {
 		helpers.BadRequest(err, c)
 	} else if auth, found := a.authRepository.Authenticate(request.Email, request.Password); !found {
 		helpers.BadRequest(errors.New("auth not found"), c)
-	} else if signedString, err := a.authRepository.CreateToken(auth); err != nil {
+	} else if accessToken, refreshToken, err := a.authRepository.CreateTokens(auth.ID); err != nil {
 		helpers.BadRequest(err, c)
 	} else {
-		c.Header("Authorization", "bearer "+signedString)
-		c.JSON(http.StatusOK, gin.H{"token": signedString})
+		c.JSON(http.StatusOK, SignResponse{
+			Token:        accessToken,
+			RefreshToken: refreshToken,
+		})
 	}
 }
 
 func (a *AuthController) verifyHandler(c *gin.Context) {
 	userClaims := c.MustGet("claims").(*models.UserClaims)
-	c.JSON(http.StatusOK, gin.H{
-		"audiences": userClaims.Audience,
-		"flags":     userClaims.Flags,
-	})
+	token := c.MustGet("token").(string)
+	if a.authRepository.IsInvalidatedToken(token) {
+		helpers.UnauthorizedRequest(fmt.Errorf("token invalidated"), c)
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"user_id":   userClaims.ID,
+			"audiences": userClaims.Audience,
+			"flags":     userClaims.Flags,
+		})
+	}
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+func (a *AuthController) refreshTokenHandler(c *gin.Context) {
+	request := RefreshTokenRequest{}
+	if err := c.BindJSON(&request); err != nil {
+		helpers.BadRequest(err, c)
+	} else if claims, err := a.authRepository.GetClaimsFromRefreshToken(request.RefreshToken); err != nil {
+		helpers.UnauthorizedRequest(err, c)
+	} else if a.authRepository.IsInvalidatedToken(request.RefreshToken) {
+		helpers.UnauthorizedRequest(fmt.Errorf("token invalidated"), c)
+	} else if authId, err := strconv.ParseUint(claims.ID, 10, 32); err != nil {
+		helpers.BadRequest(err, c)
+	} else if accessToken, refreshToken, err := a.authRepository.CreateTokens(uint(authId)); err != nil {
+		helpers.BadRequest(err, c)
+	} else {
+		c.JSON(http.StatusOK, SignResponse{
+			Token:        accessToken,
+			RefreshToken: refreshToken,
+		})
+	}
 }
 
 func (a *AuthController) invalidateHandler(c *gin.Context) {

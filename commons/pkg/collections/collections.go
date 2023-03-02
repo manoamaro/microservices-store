@@ -18,6 +18,10 @@ func Contains[T comparable](a []T, v T) bool {
 }
 
 func ContainsAny[T comparable](a []T, b []T) bool {
+	if len(a) == 0 && len(b) == 0 {
+		return true
+	}
+
 	for _, va := range a {
 		for _, vb := range b {
 			if va == vb {

@@ -3,6 +3,7 @@ package internal
 import (
 	"database/sql"
 	"fmt"
+	"github.com/manoamaro/microservices-store/auth_service/internal/controllers"
 	"log"
 	"net/http"
 	"time"
@@ -10,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v9"
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/manoamaro/microservices-store/auth_service/internal/controllers"
 	"github.com/manoamaro/microservices-store/auth_service/internal/repositories"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 )
@@ -20,13 +20,13 @@ type Application struct {
 	redisClient    *redis.Client
 	r              *gin.Engine
 	authRepository repositories.AuthRepository
+	authController *controllers.AuthController
 }
 
 func NewApplication() *Application {
-	db, err := sql.Open(
-		"postgres",
-		helpers.GetEnv("POSTGRES_URL", "postgres://postgres:postgres@localhost:5432/auth_service?sslmode=disable"),
-	)
+	postgresUrl := helpers.GetEnv("POSTGRES_URL", "postgres://postgres:postgres@localhost:5432/auth_service?sslmode=disable")
+
+	db, err := sql.Open("postgres", postgresUrl)
 
 	if err != nil {
 		log.Fatal(err)
@@ -41,11 +41,15 @@ func NewApplication() *Application {
 
 	r := gin.Default()
 
+	authRepository := repositories.NewDefaultAuthRepository(db, redisClient)
+	authController := controllers.NewAuthController(r, authRepository)
+
 	return &Application{
 		db:             db,
 		redisClient:    redisClient,
 		r:              r,
-		authRepository: repositories.NewDefaultAuthRepository(db, redisClient),
+		authRepository: authRepository,
+		authController: authController,
 	}
 }
 
@@ -59,11 +63,6 @@ func (a *Application) RunMigrations() {
 	if err != nil && err != migrate.ErrNoChange {
 		log.Fatal(err)
 	}
-}
-
-func (a *Application) RegisterControllers() {
-	controller := controllers.NewAuthController(a.r, a.authRepository)
-	controller.RegisterRoutes()
 }
 
 func (a *Application) Run(c chan error) {

@@ -9,30 +9,32 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-const ProductsCollection string = "Products"
-
 type ProductsRepository interface {
 	ListProducts() ([]models.Product, error)
+	SearchProducts(query string) ([]models.Product, error)
 	GetProduct(id primitive.ObjectID) (*models.Product, error)
 	DeleteProduct(id primitive.ObjectID) (bool, error)
 	InsertProduct(product models.Product) (*models.Product, error)
 	UpdateProduct(product models.Product) (bool, error)
+	CreateReview(productHexId string, userId string, rating int, comment string) (*models.Review, error)
 }
 
 type DefaultProductsRepository struct {
 	context context.Context
-	db      *mongo.Database
+	col     *mongo.Collection
 }
+
+const ProductsCollection string = "Products"
 
 func NewDefaultProductsRepository(db *mongo.Database) ProductsRepository {
 	return &DefaultProductsRepository{
 		context: context.Background(),
-		db:      db,
+		col:     db.Collection(ProductsCollection),
 	}
 }
 
 func (d *DefaultProductsRepository) ListProducts() ([]models.Product, error) {
-	cursor, err := d.db.Collection(ProductsCollection).Find(d.context, bson.D{})
+	cursor, err := d.col.Find(d.context, bson.D{})
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +47,26 @@ func (d *DefaultProductsRepository) ListProducts() ([]models.Product, error) {
 	return result, nil
 }
 
+func (d *DefaultProductsRepository) SearchProducts(query string) ([]models.Product, error) {
+	q := bson.D{{
+		Key: "$text", Value: bson.M{
+			"$search": query,
+		},
+	}}
+	var result []models.Product
+	if cur, err := d.col.Find(d.context, q); err != nil {
+		return nil, err
+	} else {
+		if err := cur.All(d.context, result); err != nil {
+			return nil, err
+		} else {
+			return result, nil
+		}
+	}
+}
+
 func (d *DefaultProductsRepository) GetProduct(id primitive.ObjectID) (*models.Product, error) {
-	res := d.db.Collection(ProductsCollection).FindOne(d.context, bson.M{"_id": id})
+	res := d.col.FindOne(d.context, bson.M{"_id": id})
 	result := &models.Product{}
 	if err := res.Decode(result); err != nil {
 		return nil, err
@@ -56,7 +76,7 @@ func (d *DefaultProductsRepository) GetProduct(id primitive.ObjectID) (*models.P
 }
 
 func (d *DefaultProductsRepository) DeleteProduct(id primitive.ObjectID) (bool, error) {
-	if res, err := d.db.Collection(ProductsCollection).DeleteOne(d.context, bson.M{"_id": id}); err != nil {
+	if res, err := d.col.DeleteOne(d.context, bson.M{"_id": id}); err != nil {
 		return false, err
 	} else {
 		return res.DeletedCount > 0, nil
@@ -64,7 +84,7 @@ func (d *DefaultProductsRepository) DeleteProduct(id primitive.ObjectID) (bool, 
 }
 
 func (d *DefaultProductsRepository) InsertProduct(product models.Product) (*models.Product, error) {
-	if res, err := d.db.Collection(ProductsCollection).InsertOne(d.context, product); err != nil {
+	if res, err := d.col.InsertOne(d.context, product); err != nil {
 		return nil, err
 	} else {
 		newProduct := product
@@ -74,10 +94,32 @@ func (d *DefaultProductsRepository) InsertProduct(product models.Product) (*mode
 }
 
 func (d *DefaultProductsRepository) UpdateProduct(product models.Product) (bool, error) {
-	if res, err := d.db.Collection(ProductsCollection).ReplaceOne(d.context, bson.M{"_id": product.Id}, product); err != nil {
+	if res, err := d.col.ReplaceOne(d.context, bson.M{"_id": product.Id}, product); err != nil {
 		return false, err
 	} else {
 		return res.ModifiedCount > 0, nil
 	}
+}
 
+func (d *DefaultProductsRepository) CreateReview(productHexId string, userId string, rating int, comment string) (*models.Review, error) {
+	if productId, err := primitive.ObjectIDFromHex(productHexId); err != nil {
+		return nil, err
+	} else if product, err := d.GetProduct(productId); err != nil {
+		return nil, err
+	} else {
+
+		review := &models.Review{
+			UserId:  userId,
+			Author:  userId,
+			Rating:  rating,
+			Comment: comment,
+		}
+
+		product.Reviews = append(product.Reviews, *review)
+		if _, err := d.UpdateProduct(*product); err != nil {
+			return nil, err
+		} else {
+			return review, nil
+		}
+	}
 }

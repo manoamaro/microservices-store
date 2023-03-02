@@ -10,19 +10,36 @@ Content-Type: application/json
 > {% client.global.set("auth_token", response.body.token); %}
 
 ###
+
+
+POST {{auth_host}}/public/refresh
+Content-Type: application/json
+
+{
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODAzNjM1MTYsImlhdCI6MTY3Nzc3MTUxNiwianRpIjoiMSJ9.AnKoVbHgMfLGsS3Y0dFt-Kx0SZaAtBz4s_MoTvaStB8"
+}
+###
+
 GET {{auth_host}}/public/verify
 Accept: application/json
 Authorization: Bearer {{auth_token}}
 
 ###
 
-GET {{products_host}}/admin/list
+GET {{products_host}}/admin
 Accept: application/json
 Authorization: Bearer {{auth_token}}
 
 ###
 
-POST {{products_host}}/admin/create
+GET {{products_host}}/admin/63fdc0b13f140c842423cad3
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+###
+
+
+POST {{products_host}}/admin
 Content-Type: application/json
 Authorization: Bearer {{auth_token}}
 
@@ -46,6 +63,17 @@ Accept: application/json
 
 GET {{products_host}}/public/{{productId}}
 Accept: application/json
+
+###
+
+POST {{products_host}}/public/{{productId}}/review
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "rating": 5,
+  "comment": "Testing review {{$random.alphabetic(1000)}}"
+}
 
 ###
 

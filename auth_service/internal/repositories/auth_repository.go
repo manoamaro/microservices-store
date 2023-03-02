@@ -27,11 +27,12 @@ import (
 type AuthRepository interface {
 	GetTokenFromRequest(r *http.Request) (*models.UserClaims, string, error)
 	GetClaimsFromToken(rawToken string) (*models.UserClaims, error)
+	GetClaimsFromRefreshToken(rawToken string) (*jwt.RegisteredClaims, error)
 	CreateAuth(email string, plainPassword string) (auth *models.Auth, err error)
 	Authenticate(email string, plainPassword string) (auth *models.Auth, found bool)
 	InvalidateToken(token *models.UserClaims, rawToken string) error
-	CheckToken(rawToken string) bool
-	CreateToken(auth *models.Auth) (string, error)
+	IsInvalidatedToken(rawToken string) bool
+	CreateTokens(authId uint) (accessToken, refreshToken string, err error)
 }
 
 type DefaultAuthRepository struct {
@@ -99,7 +100,7 @@ func (s *DefaultAuthRepository) InvalidateToken(token *models.UserClaims, rawTok
 	return nil
 }
 
-func (s *DefaultAuthRepository) CheckToken(rawToken string) bool {
+func (s *DefaultAuthRepository) IsInvalidatedToken(rawToken string) bool {
 	key := s.getRedisInvalidTokenKey(rawToken)
 	val, _ := s.redisClient.Get(s.context, key).Bool()
 	return val
@@ -109,54 +110,68 @@ func (s *DefaultAuthRepository) getRedisInvalidTokenKey(rawToken string) string 
 	return fmt.Sprintf("token.invalid.%s", rawToken)
 }
 
-func (s *DefaultAuthRepository) CreateToken(auth *models.Auth) (string, error) {
-	var audiences []models.Audience
-	s.ormDB.Preload(clause.Associations).Where(&models.Audience{Auth: auth}).Find(&audiences)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, models.UserClaims{
-		jwt.RegisteredClaims{
-			ID:        strconv.Itoa(int(auth.ID)),
+func (s *DefaultAuthRepository) CreateTokens(authId uint) (string, string, error) {
+	var auth models.Auth
+	s.ormDB.Preload(clause.Associations).Where("id = ?", authId).First(&auth)
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, models.UserClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        strconv.Itoa(int(authId)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
-			Audience:  collections.MapTo(audiences, func(audience models.Audience) string { return audience.Domain.Domain }),
+			Audience:  collections.MapTo(auth.Domains, func(audience models.Domain) string { return audience.Domain }),
 		},
-		models.AuthInfo{
+		AuthInfo: models.AuthInfo{
 			Flags: collections.MapTo(auth.Flags, func(flag models.Flag) string { return flag.Name }),
 		},
 	})
-	return token.SignedString(helpers.GetJWTSecret())
+
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		ID:        strconv.Itoa(int(auth.ID)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 30)),
+	})
+
+	if accessTokenSigned, err := accessToken.SignedString(helpers.GetJWTSecret()); err != nil {
+		return "", "", err
+	} else if refreshTokenSigned, err := refreshToken.SignedString(helpers.GetJWTSecret()); err != nil {
+		return "", "", err
+	} else {
+		return accessTokenSigned, refreshTokenSigned, nil
+	}
 }
 
 func (s *DefaultAuthRepository) GetTokenFromRequest(r *http.Request) (*models.UserClaims, string, error) {
-	rawToken, err := request.AuthorizationHeaderExtractor.ExtractToken(r)
-	if err != nil {
+	if rawToken, err := request.AuthorizationHeaderExtractor.ExtractToken(r); err != nil {
 		return nil, "", err
-	}
-
-	userClaims, err := s.GetClaimsFromToken(rawToken)
-	if err != nil {
+	} else if userClaims, err := s.GetClaimsFromToken(rawToken); err != nil {
 		return nil, "", err
+	} else {
+		return userClaims, rawToken, nil
 	}
-
-	return userClaims, rawToken, nil
 }
 
 func (s *DefaultAuthRepository) GetClaimsFromToken(rawToken string) (*models.UserClaims, error) {
-	token, err := jwt.ParseWithClaims(rawToken, &models.UserClaims{}, helpers.GetJWTSecretFunc)
-	if err != nil {
+	if token, err := jwt.ParseWithClaims(rawToken, &models.UserClaims{}, helpers.GetJWTSecretFunc); err != nil {
 		return nil, err
-	}
-
-	if !token.Valid {
+	} else if !token.Valid {
 		return nil, errors.New("invalid token")
-	}
-
-	userValues := token.Claims.(*models.UserClaims)
-	if userValues == nil {
+	} else if userValues := token.Claims.(*models.UserClaims); userValues == nil {
 		return nil, errors.New("invalid payload")
+	} else {
+		return userValues, nil
 	}
+}
 
-	return userValues, nil
-
+func (s *DefaultAuthRepository) GetClaimsFromRefreshToken(rawToken string) (*jwt.RegisteredClaims, error) {
+	if token, err := jwt.ParseWithClaims(rawToken, &jwt.RegisteredClaims{}, helpers.GetJWTSecretFunc); err != nil {
+		return nil, err
+	} else if !token.Valid {
+		return nil, errors.New("invalid token")
+	} else if claims := token.Claims.(*jwt.RegisteredClaims); claims == nil {
+		return nil, errors.New("invalid payload")
+	} else {
+		return claims, nil
+	}
 }
 
 func CalculatePasswordHash(plainPassword string, salt string) string {

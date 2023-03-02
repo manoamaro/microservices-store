@@ -27,11 +27,7 @@ create table if not exists auths (
 );
 create index if not exists idx_auths_deleted_at on auths (deleted_at);
 
-create table if not exists audiences (
-    id bigserial primary key,
-    created_at timestamp with time zone not null default NOW(),
-    updated_at timestamp with time zone not null default NOW(),
-    deleted_at timestamp with time zone,
+create table if not exists auths_domains (
     auth_id bigint constraint fk_audiences_auth references auths,
     domain_id bigint constraint fk_audiences_domain references domains
 );

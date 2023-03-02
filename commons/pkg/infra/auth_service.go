@@ -1,16 +1,16 @@
 package infra
 
 import (
-	"github.com/manoamaro/microservices-store/commons/pkg/collections"
 	"net/http"
 )
 
 type AuthService interface {
 	IService
-	Validate(token string, audiences ...string) (bool, error)
+	Validate(token string, audiences ...string) (*VerifyResponse, error)
 }
 
 type VerifyResponse struct {
+	UserId    string   `json:"user_id"`
 	Audiences []string `json:"audiences"`
 	Flags     []string `json:"flags"`
 }
@@ -28,10 +28,10 @@ func NewDefaultAuthService(host string) AuthService {
 	}
 }
 
-func (d *DefaultAuthService) Validate(token string, audiences ...string) (bool, error) {
+func (d *DefaultAuthService) Validate(token string, audiences ...string) (*VerifyResponse, error) {
 	response, err := d.verifyEndpoint.Execute("/public/verify", map[string]string{"Authorization": token}, nil)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	return collections.ContainsAny(audiences, response.Audiences), err
+	return &response, err
 }

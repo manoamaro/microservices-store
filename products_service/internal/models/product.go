@@ -21,6 +21,7 @@ type Price struct {
 }
 
 type Review struct {
+	UserId  string `bson:"user_id" json:"user_id"`
 	Author  string `bson:"author" json:"author"`
 	Rating  int    `bson:"rating" json:"rating"`
 	Comment string `bson:"comment" json:"comment"`

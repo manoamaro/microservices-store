@@ -53,7 +53,7 @@ func newDevApplication() *Application {
 
 func (a *Application) SetupRoutes() *gin.Engine {
 	r := gin.Default()
-	controller.NewProductController(r, a.ProductsRepository)
+	controller.NewProductController(r, a.AuthService, a.ProductsRepository)
 	controller.NewAdminProductController(r, a.ProductsRepository, a.AuthService)
 	return r
 }
