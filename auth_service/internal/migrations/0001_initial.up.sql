@@ -29,9 +29,9 @@ create index if not exists idx_auths_deleted_at on auths (deleted_at);
 
 create table if not exists auths_domains (
     auth_id bigint constraint fk_audiences_auth references auths,
-    domain_id bigint constraint fk_audiences_domain references domains
+    domain_id bigint constraint fk_audiences_domain references domains,
+    primary key (auth_id, domain_id)
 );
-create index if not exists idx_audiences_deleted_at on audiences (deleted_at);
 
 create table if not exists auths_flags (
     auth_id bigint not null constraint fk_auths_flags_auth references auths,

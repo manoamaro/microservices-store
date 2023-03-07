@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"github.com/manoamaro/microservices-store/auth_service/internal/controllers"
+	"github.com/manoamaro/microservices-store/auth_service/internal/use_cases"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"log"
 	"net/http"
@@ -48,7 +49,13 @@ func NewApplication() *Application {
 	engine := gin.Default()
 
 	authRepository := repositories.NewDefaultAuthRepository(db, redisClient)
-	authController := controllers.NewAuthController(engine, authRepository)
+	authController := controllers.NewAuthController(
+		engine,
+		use_cases.NewSignInUseCase(authRepository),
+		use_cases.NewSignUpUseCase(authRepository),
+		use_cases.NewVerifyUseCase(authRepository),
+		use_cases.NewRefreshTokenUseCase(authRepository),
+	)
 
 	return &Application{
 		db:             db,

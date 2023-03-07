@@ -1,5 +1,7 @@
 package collections
 
+import "fmt"
+
 func MapTo[I interface{}, O interface{}](i []I, f func(I) O) []O {
 	var output []O
 	for _, el := range i {
@@ -30,4 +32,10 @@ func ContainsAny[T comparable](a []T, b []T) bool {
 		}
 	}
 	return false
+}
+
+func MapToString[I fmt.Stringer](i []I) []string {
+	return MapTo(i, func(i I) string {
+		return i.String()
+	})
 }

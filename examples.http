@@ -7,7 +7,10 @@ Content-Type: application/json
     "password": "admin"
 }
 
-> {% client.global.set("auth_token", response.body.token); %}
+> {%
+    client.global.set("auth_token", response.body.token);
+    client.global.set("refresh_token", response.body.refresh_token);
+    %}
 
 ###
 
@@ -16,8 +19,14 @@ POST {{auth_host}}/public/refresh
 Content-Type: application/json
 
 {
-    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODAzNjM1MTYsImlhdCI6MTY3Nzc3MTUxNiwianRpIjoiMSJ9.AnKoVbHgMfLGsS3Y0dFt-Kx0SZaAtBz4s_MoTvaStB8"
+    "refresh_token": "{{refresh_token}}"
 }
+
+> {%
+    client.global.set("auth_token", response.body.token);
+    client.global.set("refresh_token", response.body.refresh_token);
+%}
+
 ###
 
 GET {{auth_host}}/public/verify
