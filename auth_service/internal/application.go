@@ -2,8 +2,10 @@ package internal
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
 	"github.com/manoamaro/microservices-store/auth_service/internal/controllers"
+	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"log"
 	"net/http"
 	"time"
@@ -15,10 +17,14 @@ import (
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 )
 
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
+
 type Application struct {
 	db             *sql.DB
 	redisClient    *redis.Client
-	r              *gin.Engine
+	engine         *gin.Engine
+	migrator       infra.Migrator
 	authRepository repositories.AuthRepository
 	authController *controllers.AuthController
 }
@@ -39,28 +45,23 @@ func NewApplication() *Application {
 		DB:       0, // use default DB
 	})
 
-	r := gin.Default()
+	engine := gin.Default()
 
 	authRepository := repositories.NewDefaultAuthRepository(db, redisClient)
-	authController := controllers.NewAuthController(r, authRepository)
+	authController := controllers.NewAuthController(engine, authRepository)
 
 	return &Application{
 		db:             db,
 		redisClient:    redisClient,
-		r:              r,
+		engine:         engine,
+		migrator:       infra.NewMigrator(postgresUrl, migrationsFS),
 		authRepository: authRepository,
 		authController: authController,
 	}
 }
 
 func (a *Application) RunMigrations() {
-	migration, err := NewMigration(a.db)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = migration.Up()
-	if err != nil && err != migrate.ErrNoChange {
+	if err := a.migrator.Up(); err != nil && err != migrate.ErrNoChange {
 		log.Fatal(err)
 	}
 }
@@ -73,7 +74,7 @@ func (a *Application) Run(c chan error) {
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler:      a.r,
+		Handler:      a.engine,
 	}
 
 	go func() {

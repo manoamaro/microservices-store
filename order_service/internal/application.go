@@ -1,10 +1,8 @@
 package internal
 
 import (
-	"embed"
 	"fmt"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
-	"github.com/manoamaro/microservices-store/inventory_service/internal/use_cases/inventory"
 	"log"
 	"net/http"
 	"time"
@@ -13,18 +11,12 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
-	"github.com/manoamaro/microservices-store/inventory_service/internal/controller"
-	"github.com/manoamaro/microservices-store/inventory_service/internal/repository"
 )
 
-//go:embed migrations/*.sql
-var migrationsFS embed.FS
-
 type Application struct {
-	engine              *gin.Engine
-	inventoryRepository repository.InventoryRepository
-	authService         infra.AuthService
-	migrator            infra.Migrator
+	engine      *gin.Engine
+	authService infra.AuthService
+	migrator    Migrator
 }
 
 func NewApplication() *Application {
@@ -33,10 +25,9 @@ func NewApplication() *Application {
 
 	engine := gin.Default()
 	return &Application{
-		engine:              engine,
-		inventoryRepository: repository.NewDefaultInventoryRepository(postgresUrl),
-		authService:         infra.NewDefaultAuthService(authUrl),
-		migrator:            infra.NewMigrator(postgresUrl, migrationsFS),
+		engine:      engine,
+		authService: infra.NewDefaultAuthService(authUrl),
+		migrator:    NewMigrator(postgresUrl),
 	}
 }
 
@@ -47,19 +38,13 @@ func (a *Application) RunMigrations() {
 }
 
 func (a *Application) RegisterControllers() {
-	inventoryController := controller.NewInventoryController(
-		a.engine,
-		a.authService,
-		inventory.NewGetUseCase(a.inventoryRepository),
-		inventory.NewAddUseCase(a.inventoryRepository),
-		inventory.NewSubtractUseCase(a.inventoryRepository),
-	)
-	inventoryController.RegisterRoutes()
 }
 
 func (a *Application) Run(c chan error) {
-	port := helpers.GetEnv("PORT", "8080")
+	a.RunMigrations()
+	a.RegisterControllers()
 
+	port := helpers.GetEnv("PORT", "8080")
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
 		WriteTimeout: time.Second * 15,

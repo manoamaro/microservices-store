@@ -23,7 +23,8 @@ type DefaultInventoryRepository struct {
 	ormDB   *gorm.DB
 }
 
-func NewDefaultInventoryRepository(db *sql.DB) InventoryRepository {
+func NewDefaultInventoryRepository(dbUrl string) InventoryRepository {
+	db, err := sql.Open("postgres", dbUrl)
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: db,
 	}), &gorm.Config{})
