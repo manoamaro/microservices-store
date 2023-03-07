@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
+	"github.com/manoamaro/microservices-store/inventory_service/internal/use_cases/inventory"
 	"log"
 	"net/http"
 	"time"
@@ -18,7 +19,7 @@ import (
 
 type Application struct {
 	db                  *sql.DB
-	r                   *gin.Engine
+	engine              *gin.Engine
 	inventoryRepository repository.InventoryRepository
 	authService         infra.AuthService
 }
@@ -33,11 +34,11 @@ func NewApplication() *Application {
 		log.Fatal(err)
 	}
 
-	r := gin.Default()
+	engine := gin.Default()
 
 	return &Application{
 		db:                  db,
-		r:                   r,
+		engine:              engine,
 		inventoryRepository: repository.NewDefaultInventoryRepository(db),
 		authService:         infra.NewDefaultAuthService(authUrl),
 	}
@@ -56,8 +57,14 @@ func (a *Application) RunMigrations() {
 }
 
 func (a *Application) RegisterControllers() {
-	controller := controller.NewInventoryController(a.r, a.authService, a.inventoryRepository)
-	controller.RegisterRoutes()
+	inventoryController := controller.NewInventoryController(
+		a.engine,
+		a.authService,
+		inventory.NewGetUseCase(a.inventoryRepository),
+		inventory.NewAddUseCase(a.inventoryRepository),
+		inventory.NewSubtractUseCase(a.inventoryRepository),
+	)
+	inventoryController.RegisterRoutes()
 }
 
 func (a *Application) Run(c chan error) {
@@ -68,7 +75,7 @@ func (a *Application) Run(c chan error) {
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler:      a.r,
+		Handler:      a.engine,
 	}
 
 	go func() {

@@ -4,27 +4,37 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
-	"github.com/manoamaro/microservices-store/inventory_service/internal/repository"
+	"github.com/manoamaro/microservices-store/inventory_service/internal/use_cases/inventory"
 )
 
 type InventoryController struct {
-	r                   *gin.Engine
-	authService         infra.AuthService
-	inventoryRepository repository.InventoryRepository
+	engine          *gin.Engine
+	authService     infra.AuthService
+	getUseCase      inventory.GetUseCase
+	addUseCase      inventory.AddUseCase
+	subtractUseCase inventory.SubtractUseCase
 }
 
-func NewInventoryController(r *gin.Engine, authService infra.AuthService, inventoryRepository repository.InventoryRepository) InventoryController {
+func NewInventoryController(
+	engine *gin.Engine,
+	authService infra.AuthService,
+	getUseCase inventory.GetUseCase,
+	addUseCase inventory.AddUseCase,
+	subtractUseCase inventory.SubtractUseCase,
+) InventoryController {
 	return InventoryController{
-		r:                   r,
-		authService:         authService,
-		inventoryRepository: inventoryRepository,
+		engine:          engine,
+		authService:     authService,
+		getUseCase:      getUseCase,
+		addUseCase:      addUseCase,
+		subtractUseCase: subtractUseCase,
 	}
 }
 func (a *InventoryController) RegisterRoutes() {
-	public := a.r.Group("/public")
+	public := a.engine.Group("/public")
 	public.GET("/inventory/:product_id", a.amountOfHandler)
 
-	internal := a.r.Group("/internal", helpers.AuthMiddleware(a.authService, "inventory"))
+	internal := a.engine.Group("/internal", helpers.AuthMiddleware(a.authService, "inventory"))
 	internal.POST("/inventory/add", a.addHandler)
 	internal.POST("/inventory/subtract", a.subtractHandler)
 }
@@ -34,11 +44,12 @@ func (a *InventoryController) amountOfHandler(c *gin.Context) {
 		ProductId string `uri:"product_id" binding:"required"`
 	}
 	if err := c.BindUri(&uri); err != nil {
-		c.JSON(400, gin.H{"msg": err})
-		return
+		helpers.BadRequest(err, c)
+	} else if amount, err := a.getUseCase.Get(uri.ProductId); err != nil {
+		helpers.BadRequest(err, c)
+	} else {
+		c.JSON(200, gin.H{"amount": amount})
 	}
-	amount := a.inventoryRepository.AmountOf(uri.ProductId)
-	c.JSON(200, gin.H{"amount": amount})
 }
 
 func (a *InventoryController) addHandler(c *gin.Context) {
@@ -46,8 +57,11 @@ func (a *InventoryController) addHandler(c *gin.Context) {
 		ProductId string `json:"product_id" binding:"required"`
 		Amount    uint   `json:"amount" binding:"required"`
 	}
-	if err := c.BindJSON(&request); err == nil {
-		amount := a.inventoryRepository.Add(request.ProductId, request.Amount)
+	if err := c.BindJSON(&request); err != nil {
+		helpers.BadRequest(err, c)
+	} else if amount, err := a.addUseCase.Add(request.ProductId, request.Amount); err != nil {
+		helpers.BadRequest(err, c)
+	} else {
 		c.JSON(200, gin.H{"amount": amount})
 	}
 }
@@ -57,8 +71,11 @@ func (a *InventoryController) subtractHandler(c *gin.Context) {
 		ProductId string `json:"product_id" binding:"required"`
 		Amount    uint   `json:"amount" binding:"required"`
 	}
-	if err := c.BindJSON(&request); err == nil {
-		amount := a.inventoryRepository.Subtract(request.ProductId, request.Amount)
+	if err := c.BindJSON(&request); err != nil {
+		helpers.BadRequest(err, c)
+	} else if amount, err := a.subtractUseCase.Subtract(request.ProductId, request.Amount); err != nil {
+		helpers.BadRequest(err, c)
+	} else {
 		c.JSON(200, gin.H{"amount": amount})
 	}
 }
