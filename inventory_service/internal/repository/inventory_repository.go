@@ -17,13 +17,13 @@ type InventoryRepository interface {
 	Subtract(productId string, a uint) (amount uint)
 }
 
-type DefaultInventoryRepository struct {
+type inventoryDBRepository struct {
 	context context.Context
 	db      *sql.DB
 	ormDB   *gorm.DB
 }
 
-func NewDefaultInventoryRepository(dbUrl string) InventoryRepository {
+func NewInventoryDBRepository(dbUrl string) InventoryRepository {
 	db, err := sql.Open("postgres", dbUrl)
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: db,
@@ -33,14 +33,14 @@ func NewDefaultInventoryRepository(dbUrl string) InventoryRepository {
 		log.Fatal(err)
 	}
 
-	return &DefaultInventoryRepository{
+	return &inventoryDBRepository{
 		context: context.Background(),
 		db:      db,
 		ormDB:   gormDB,
 	}
 }
 
-func (i *DefaultInventoryRepository) AmountOf(productId string) (amount uint) {
+func (i *inventoryDBRepository) AmountOf(productId string) (amount uint) {
 	return amountOf(i.ormDB, productId)
 }
 
@@ -60,7 +60,7 @@ func amountOf(tx *gorm.DB, productId string) (amount uint) {
 	return amount
 }
 
-func (i *DefaultInventoryRepository) Add(productId string, a uint) (amount uint) {
+func (i *inventoryDBRepository) Add(productId string, a uint) (amount uint) {
 	newTransaction := models.Transaction{
 		ProductId: productId,
 		Amount:    a,
@@ -80,7 +80,7 @@ func (i *DefaultInventoryRepository) Add(productId string, a uint) (amount uint)
 	return amount
 }
 
-func (i *DefaultInventoryRepository) Subtract(productId string, a uint) (amount uint) {
+func (i *inventoryDBRepository) Subtract(productId string, a uint) (amount uint) {
 	newTransaction := models.Transaction{
 		ProductId: productId,
 		Amount:    a,

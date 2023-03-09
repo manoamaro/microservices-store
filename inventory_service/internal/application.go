@@ -25,6 +25,7 @@ type Application struct {
 	inventoryRepository repository.InventoryRepository
 	authService         infra.AuthService
 	migrator            infra.Migrator
+	controllers         []infra.Controller
 }
 
 func NewApplication() *Application {
@@ -32,11 +33,22 @@ func NewApplication() *Application {
 	authUrl := helpers.GetEnv("AUTH_SERVICE_URL", "http://localhost:8080")
 
 	engine := gin.Default()
+	inventoryRepository := repository.NewInventoryDBRepository(postgresUrl)
+	authService := infra.NewDefaultAuthService(authUrl)
 	return &Application{
 		engine:              engine,
-		inventoryRepository: repository.NewDefaultInventoryRepository(postgresUrl),
-		authService:         infra.NewDefaultAuthService(authUrl),
+		inventoryRepository: inventoryRepository,
+		authService:         authService,
 		migrator:            infra.NewMigrator(postgresUrl, migrationsFS),
+		controllers: []infra.Controller{
+			controller.NewInventoryController(
+				engine,
+				authService,
+				inventory.NewGetUseCase(inventoryRepository),
+				inventory.NewAddUseCase(inventoryRepository),
+				inventory.NewSubtractUseCase(inventoryRepository),
+			),
+		},
 	}
 }
 
@@ -47,14 +59,9 @@ func (a *Application) RunMigrations() {
 }
 
 func (a *Application) RegisterControllers() {
-	inventoryController := controller.NewInventoryController(
-		a.engine,
-		a.authService,
-		inventory.NewGetUseCase(a.inventoryRepository),
-		inventory.NewAddUseCase(a.inventoryRepository),
-		inventory.NewSubtractUseCase(a.inventoryRepository),
-	)
-	inventoryController.RegisterRoutes()
+	for _, _controller := range a.controllers {
+		_controller.RegisterRoutes()
+	}
 }
 
 func (a *Application) Run(c chan error) {

@@ -27,7 +27,7 @@ type Application struct {
 	engine         *gin.Engine
 	migrator       infra.Migrator
 	authRepository repositories.AuthRepository
-	authController *controllers.AuthController
+	controllers    []infra.Controller
 }
 
 func NewApplication() *Application {
@@ -63,7 +63,7 @@ func NewApplication() *Application {
 		engine:         engine,
 		migrator:       infra.NewMigrator(postgresUrl, migrationsFS),
 		authRepository: authRepository,
-		authController: authController,
+		controllers:    []infra.Controller{authController},
 	}
 }
 
@@ -74,6 +74,10 @@ func (a *Application) RunMigrations() {
 }
 
 func (a *Application) Run(c chan error) {
+	for _, _controller := range a.controllers {
+		_controller.RegisterRoutes()
+	}
+
 	port := helpers.GetEnv("PORT", "8080")
 
 	srv := &http.Server{

@@ -5,6 +5,7 @@ import (
 	"github.com/golang-jwt/jwt/v4/request"
 	"github.com/manoamaro/microservices-store/auth_service/internal/use_cases"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
+	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"net/http"
 )
 
@@ -22,7 +23,7 @@ func NewAuthController(
 	signUpUseCase use_cases.SignUpUseCase,
 	verifyUseCase use_cases.VerifyUseCase,
 	refreshTokenUseCase use_cases.RefreshTokenUseCase,
-) *AuthController {
+) infra.Controller {
 	controller := &AuthController{
 		engine:              r,
 		signInUseCase:       signInUseCase,
@@ -30,7 +31,6 @@ func NewAuthController(
 		verifyUseCase:       verifyUseCase,
 		refreshTokenUseCase: refreshTokenUseCase,
 	}
-	controller.RegisterRoutes()
 	return controller
 }
 
@@ -60,12 +60,12 @@ type SignInUpResponse struct {
 }
 
 func (a *AuthController) signUpHandler(c *gin.Context) {
-	request := &SignUpRequest{}
-	if err := c.BindJSON(request); err != nil {
+	req := &SignUpRequest{}
+	if err := c.BindJSON(req); err != nil {
 		helpers.BadRequest(err, c)
 	} else if result, err := a.signUpUseCase.SignUp(use_cases.SignUpDTO{
-		Email:         request.Email,
-		PlainPassword: request.Password,
+		Email:         req.Email,
+		PlainPassword: req.Password,
 	}); err != nil {
 		helpers.BadRequest(err, c)
 	} else {

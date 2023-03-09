@@ -21,8 +21,8 @@ func NewInventoryController(
 	getUseCase inventory.GetUseCase,
 	addUseCase inventory.AddUseCase,
 	subtractUseCase inventory.SubtractUseCase,
-) InventoryController {
-	return InventoryController{
+) infra.Controller {
+	return &InventoryController{
 		engine:          engine,
 		authService:     authService,
 		getUseCase:      getUseCase,
@@ -30,6 +30,7 @@ func NewInventoryController(
 		subtractUseCase: subtractUseCase,
 	}
 }
+
 func (a *InventoryController) RegisterRoutes() {
 	public := a.engine.Group("/public")
 	public.GET("/inventory/:product_id", a.amountOfHandler)
