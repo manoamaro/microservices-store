@@ -17,6 +17,7 @@ type Application struct {
 	authService      infra.AuthService
 	inventoryService service.InventoryService
 	cartRepository   repositories.CartRepository
+	orderRepository  repositories.OrderRepository
 	controllers      []infra.Controller
 }
 
@@ -31,6 +32,7 @@ func NewApplication() *Application {
 		authService:      infra.NewDefaultAuthService(authUrl),
 		inventoryService: service.NewHttpInventoryService(inventoryUrl),
 		cartRepository:   repositories.NewCartDBRepository(postgresUrl),
+		orderRepository:  repositories.NewOrderDBRepository(postgresUrl),
 	}
 }
 
@@ -43,6 +45,7 @@ func (a *Application) RegisterControllers() {
 func (a *Application) Run(c chan error) {
 	a.RegisterControllers()
 
+	a.cartRepository.GetOpenOrCreateByUserId("1234")
 	port := helpers.GetEnv("PORT", "8080")
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("0.0.0.0:%s", port),

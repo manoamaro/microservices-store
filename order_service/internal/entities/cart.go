@@ -2,10 +2,15 @@ package entities
 
 import "gorm.io/gorm"
 
+const (
+	CartStatusOpen   = 1
+	CartStatusClosed = 2
+)
+
 type Cart struct {
 	gorm.Model
 	UserId string     `gorm:"notNull;index"`
-	Status string     `gorm:"notNull;index"`
+	Status int        `gorm:"notNull;index"`
 	Items  []CartItem `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Total  uint       `gorm:"notNull;check:total >= 0"`
 }
