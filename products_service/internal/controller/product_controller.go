@@ -4,7 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
+	"github.com/manoamaro/microservices-store/products_service/internal/models"
 	"github.com/manoamaro/microservices-store/products_service/internal/repository"
+	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 )
@@ -33,7 +35,14 @@ func (c *ProductController) listProductsHandler(ctx *gin.Context) {
 	if products, err := c.productsRepository.ListProducts(); err != nil {
 		helpers.BadRequest(err, ctx)
 	} else {
-		ctx.JSON(http.StatusOK, products)
+		productsDTO := lo.FilterMap[models.Product, ProductDTO](products, func(item models.Product, index int) (ProductDTO, bool) {
+			product, err := FromProduct(item, "EUR")
+			if err != nil {
+				return ProductDTO{}, false
+			}
+			return product, true
+		})
+		ctx.JSON(http.StatusOK, productsDTO)
 	}
 }
 
@@ -46,8 +55,10 @@ func (c *ProductController) getProductHandler(ctx *gin.Context) {
 	}
 	if product, err := c.productsRepository.GetProduct(objectID); err != nil {
 		helpers.BadRequest(err, ctx)
+	} else if productDTO, err := FromProduct(*product, "EUR"); err != nil {
+		helpers.BadRequest(err, ctx)
 	} else {
-		ctx.JSON(http.StatusOK, product)
+		ctx.JSON(http.StatusOK, productDTO)
 	}
 }
 

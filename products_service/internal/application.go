@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"github.com/manoamaro/microservices-store/products_service/internal/controller"
-	"github.com/manoamaro/microservices-store/products_service/internal/mock"
 	"github.com/manoamaro/microservices-store/products_service/internal/repository"
 	"github.com/manoamaro/microservices-store/products_service/internal/services"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -23,11 +22,7 @@ type Application struct {
 }
 
 func NewApplication() *Application {
-	if helpers.IsEnvironment(helpers.DEV) {
-		return newDevApplication()
-	} else {
-		return newProdApplication()
-	}
+	return newProdApplication()
 }
 
 func newProdApplication() *Application {
@@ -41,13 +36,6 @@ func newProdApplication() *Application {
 	return &Application{
 		ProductsRepository: repository.NewDefaultProductsRepository(mongoDB),
 		AuthService:        infra.NewDefaultAuthService(authUrl),
-	}
-}
-
-func newDevApplication() *Application {
-	return &Application{
-		ProductsRepository: mock.NewProductsRepository(),
-		AuthService:        &mock.AuthService{},
 	}
 }
 

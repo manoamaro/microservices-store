@@ -57,9 +57,13 @@ Authorization: Bearer {{auth_token}}
   "description": "Product {{$random.alphabetic(10)}}",
   "prices": [{
     "currency": "EUR",
-    "price": {{$random.float()}}
+    "price": {{$randomInt}}
   }]
 }
+
+> {%
+    client.global.set("productId", response.body.id);
+%}
 
 ###
 
@@ -98,7 +102,7 @@ Authorization: Bearer {{auth_token}}
 
 {
   "product_id": "{{productId}}",
-  "amount": 1
+  "amount": 17
 }
 
 ###
@@ -110,6 +114,18 @@ Authorization: Bearer {{auth_token}}
 {
   "product_id": "{{productId}}",
   "amount": 1
+}
+
+###
+
+POST {{inventory_host}}/internal/inventory/reserve
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "cart_id": "cartId",
+  "product_id": "{{productId}}",
+  "amount": 12
 }
 
 ###

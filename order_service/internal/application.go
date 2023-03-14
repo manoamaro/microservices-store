@@ -1,16 +1,24 @@
 package internal
 
 import (
+	"embed"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"github.com/manoamaro/microservices-store/order_service/internal/repositories"
 	"github.com/manoamaro/microservices-store/order_service/internal/service"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 )
+
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
 type Application struct {
 	engine           *gin.Engine
@@ -19,6 +27,7 @@ type Application struct {
 	cartRepository   repositories.CartRepository
 	orderRepository  repositories.OrderRepository
 	controllers      []infra.Controller
+	migrator         infra.Migrator
 }
 
 func NewApplication() *Application {
@@ -26,13 +35,22 @@ func NewApplication() *Application {
 	authUrl := helpers.GetEnv("AUTH_SERVICE_URL", "http://localhost:8080")
 	inventoryUrl := helpers.GetEnv("INVENTORY_SERVICE_URL", "http://localhost:8080")
 
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		DSN: postgresUrl,
+	}), &gorm.Config{})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	engine := gin.Default()
 	return &Application{
 		engine:           engine,
+		migrator:         infra.NewMigrator(postgresUrl, migrationsFS),
 		authService:      infra.NewDefaultAuthService(authUrl),
 		inventoryService: service.NewHttpInventoryService(inventoryUrl),
-		cartRepository:   repositories.NewCartDBRepository(postgresUrl),
-		orderRepository:  repositories.NewOrderDBRepository(postgresUrl),
+		cartRepository:   repositories.NewCartDBRepository(gormDB),
+		orderRepository:  repositories.NewOrderDBRepository(gormDB),
 	}
 }
 
@@ -42,10 +60,17 @@ func (a *Application) RegisterControllers() {
 	}
 }
 
+func (a *Application) RunMigrations() {
+	if err := a.migrator.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatal(err)
+	}
+}
+
 func (a *Application) Run(c chan error) {
 	a.RegisterControllers()
+	a.RunMigrations()
 
-	a.cartRepository.GetOpenOrCreateByUserId("1234")
+	a.cartRepository.GetOrCreateByUserId("1234")
 	port := helpers.GetEnv("PORT", "8080")
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("0.0.0.0:%s", port),

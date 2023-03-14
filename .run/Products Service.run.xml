@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="Products Service" type="GoApplicationRunConfiguration"
+                   factoryName="Go Application">
+        <module name="microservices-store"/>
+        <working_directory value="$PROJECT_DIR$"/>
+        <envs>
+            <env name="AUTH_SERVICE_URL" value="http://localhost:8080"/>
+            <env name="INVENTORY_SERVICE_URL" value="http://localhost:8081"/>
+            <env name="PORT" value="8082"/>
+            <env name="MONGO_URL" value="mongodb://admin:admin@localhost:27017/?maxPoolSize=20&amp;w=majority"/>
+        </envs>
+        <kind value="PACKAGE"/>
+        <package value="github.com/manoamaro/microservices-store/products_service/cmd"/>
+        <directory value="$PROJECT_DIR$"/>
+        <filePath value="$PROJECT_DIR$/products_service/cmd/main.go"/>
+        <method v="2"/>
+    </configuration>
+</component>

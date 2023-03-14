@@ -6,6 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-playground/assert/v2 v2.0.1
 	go.mongodb.org/mongo-driver v1.9.0
+	github.com/samber/lo v1.37.0
 	golang.org/x/exp v0.0.0-20220823124025-807a23277127
 )
 

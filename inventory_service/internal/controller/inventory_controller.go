@@ -13,6 +13,7 @@ type InventoryController struct {
 	getUseCase      inventory.GetUseCase
 	addUseCase      inventory.AddUseCase
 	subtractUseCase inventory.SubtractUseCase
+	reserveUseCase  inventory.ReserveUseCase
 }
 
 func NewInventoryController(
@@ -21,6 +22,7 @@ func NewInventoryController(
 	getUseCase inventory.GetUseCase,
 	addUseCase inventory.AddUseCase,
 	subtractUseCase inventory.SubtractUseCase,
+	reserveUseCase inventory.ReserveUseCase,
 ) infra.Controller {
 	return &InventoryController{
 		engine:          engine,
@@ -28,6 +30,7 @@ func NewInventoryController(
 		getUseCase:      getUseCase,
 		addUseCase:      addUseCase,
 		subtractUseCase: subtractUseCase,
+		reserveUseCase:  reserveUseCase,
 	}
 }
 
@@ -38,6 +41,7 @@ func (a *InventoryController) RegisterRoutes() {
 	internal := a.engine.Group("/internal", helpers.AuthMiddleware(a.authService, "inventory"))
 	internal.POST("/inventory/add", a.addHandler)
 	internal.POST("/inventory/subtract", a.subtractHandler)
+	internal.POST("/inventory/reserve", a.reserveHandler)
 }
 
 func (a *InventoryController) amountOfHandler(c *gin.Context) {
@@ -75,6 +79,21 @@ func (a *InventoryController) subtractHandler(c *gin.Context) {
 	if err := c.BindJSON(&request); err != nil {
 		helpers.BadRequest(err, c)
 	} else if amount, err := a.subtractUseCase.Subtract(request.ProductId, request.Amount); err != nil {
+		helpers.BadRequest(err, c)
+	} else {
+		c.JSON(200, gin.H{"amount": amount})
+	}
+}
+
+func (a *InventoryController) reserveHandler(c *gin.Context) {
+	var request struct {
+		ProductId string `json:"product_id" binding:"required"`
+		CartId    string `json:"cart_id" binding:"required"`
+		Amount    uint   `json:"amount" binding:"required"`
+	}
+	if err := c.BindJSON(&request); err != nil {
+		helpers.BadRequest(err, c)
+	} else if amount, err := a.reserveUseCase.Reserve(request.CartId, request.ProductId, request.Amount); err != nil {
 		helpers.BadRequest(err, c)
 	} else {
 		c.JSON(200, gin.H{"amount": amount})

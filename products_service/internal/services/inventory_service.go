@@ -1,14 +1,12 @@
 package services
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 )
 
 type InventoryService interface {
-	infra.IService
 	AmountOf(productId string) (int, error)
 	Add(productId string, amount int) (int, error)
 	Subtract(productId string, amount int) (int, error)
@@ -25,9 +23,9 @@ func NewDefaultInventoryService(host string) InventoryService {
 	service := infra.NewService(host)
 	return &DefaultInventoryService{
 		Service:          service,
-		amountOfEndpoint: infra.NewEndpoint[int](service, http.MethodGet, 10, 3000),
-		addEndpoint:      infra.NewEndpoint[int](service, http.MethodPost, 10, 3000),
-		subtractEndpoint: infra.NewEndpoint[int](service, http.MethodPost, 10, 3000),
+		amountOfEndpoint: infra.NewEndpoint[int](service, http.MethodGet, "/inventory/:productId", 10, 3000),
+		addEndpoint:      infra.NewEndpoint[int](service, http.MethodPost, "/inventory/add", 10, 3000),
+		subtractEndpoint: infra.NewEndpoint[int](service, http.MethodPost, "/inventory/subtract", 10, 3000),
 	}
 }
 
@@ -36,7 +34,9 @@ type Amount struct {
 }
 
 func (d *DefaultInventoryService) AmountOf(productId string) (int, error) {
-	return d.amountOfEndpoint.Execute(fmt.Sprintf("/inventory/%s", productId), nil, nil)
+	return d.amountOfEndpoint.Start().
+		WithPathParam(":productId", productId).
+		Execute()
 }
 
 func (d *DefaultInventoryService) Add(productId string, amount int) (int, error) {
@@ -44,8 +44,7 @@ func (d *DefaultInventoryService) Add(productId string, amount int) (int, error)
 		ProductId string
 		Amount    int
 	}{productId, amount}
-
-	return d.amountOfEndpoint.Execute("/inventory/add", nil, req)
+	return d.addEndpoint.Start().WithBody(req).Execute()
 }
 
 func (d *DefaultInventoryService) Subtract(productId string, amount int) (int, error) {
@@ -53,5 +52,5 @@ func (d *DefaultInventoryService) Subtract(productId string, amount int) (int, e
 		ProductId string
 		Amount    int
 	}{productId, amount}
-	return d.amountOfEndpoint.Execute("/inventory/subtract", nil, req)
+	return d.subtractEndpoint.Start().WithBody(req).Execute()
 }

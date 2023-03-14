@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="Order Service" type="GoApplicationRunConfiguration"
+                   factoryName="Go Application">
+        <module name="microservices-store"/>
+        <working_directory value="$PROJECT_DIR$"/>
+        <envs>
+            <env name="PORT" value="8083"/>
+            <env name="AUTH_SERVICE_URL" value="http://localhost:8080"/>
+            <env name="INVENTORY_SERVICE_URL" value="http://localhost:8081"/>
+            <env name="PRODUCT_SERVICE_URL" value="http://localhost:8082"/>
+        </envs>
+        <kind value="PACKAGE"/>
+        <package value="github.com/manoamaro/microservices-store/order_service/cmd"/>
+        <directory value="$PROJECT_DIR$"/>
+        <filePath value="$PROJECT_DIR$/order_service/cmd/main.go"/>
+        <method v="2"/>
+    </configuration>
+</component>

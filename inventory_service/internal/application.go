@@ -1,10 +1,13 @@
 package internal
 
 import (
+	"database/sql"
 	"embed"
 	"fmt"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"github.com/manoamaro/microservices-store/inventory_service/internal/use_cases/inventory"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"time"
@@ -32,8 +35,17 @@ func NewApplication() *Application {
 	postgresUrl := helpers.GetEnv("POSTGRES_URL", "postgres://postgres:postgres@localhost:5432/inventory_service?sslmode=disable")
 	authUrl := helpers.GetEnv("AUTH_SERVICE_URL", "http://localhost:8080")
 
+	db, err := sql.Open("postgres", postgresUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: db,
+	}), &gorm.Config{})
+
 	engine := gin.Default()
-	inventoryRepository := repository.NewInventoryDBRepository(postgresUrl)
+	inventoryRepository := repository.NewInventoryDBRepository(gormDB)
 	authService := infra.NewDefaultAuthService(authUrl)
 	return &Application{
 		engine:              engine,
@@ -47,6 +59,7 @@ func NewApplication() *Application {
 				inventory.NewGetUseCase(inventoryRepository),
 				inventory.NewAddUseCase(inventoryRepository),
 				inventory.NewSubtractUseCase(inventoryRepository),
+				inventory.NewReserveUseCase(inventoryRepository),
 			),
 		},
 	}

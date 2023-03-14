@@ -5,7 +5,6 @@ import (
 )
 
 type AuthService interface {
-	IService
 	Validate(token string, audiences ...string) (*VerifyResponse, error)
 }
 
@@ -24,12 +23,14 @@ func NewDefaultAuthService(host string) AuthService {
 	service := NewService(host)
 	return &httpAuthService{
 		Service:        service,
-		verifyEndpoint: NewEndpoint[VerifyResponse](service, http.MethodGet, 10, 10*10e9),
+		verifyEndpoint: NewEndpoint[VerifyResponse](service, http.MethodGet, "/public/verify", 10, 10*10e9),
 	}
 }
 
 func (d *httpAuthService) Validate(token string, audiences ...string) (*VerifyResponse, error) {
-	response, err := d.verifyEndpoint.Execute("/public/verify", map[string]string{"Authorization": token}, nil)
+	response, err := d.verifyEndpoint.Start().
+		WithAuthorization(token).
+		Execute()
 	if err != nil {
 		return nil, err
 	}

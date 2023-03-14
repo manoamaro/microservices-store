@@ -15,9 +15,8 @@ type Product struct {
 }
 
 type Price struct {
-	Id       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Currency string             `bson:"currency" json:"currency"`
-	Price    float64            `bson:"price" json:"price"`
+	Currency string `bson:"currency" json:"currency"`
+	Value    int    `bson:"price" json:"price"`
 }
 
 type Review struct {
