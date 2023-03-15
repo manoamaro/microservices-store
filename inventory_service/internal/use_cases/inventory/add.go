@@ -19,6 +19,5 @@ func NewAddUseCase(inventoryRepository repository.InventoryRepository) AddUseCas
 }
 
 func (r *addUseCase) Add(productId string, amount uint) (uint, error) {
-	amountAfter := r.repository.Add(productId, amount)
-	return amountAfter, nil
+	return r.repository.Add(productId, amount)
 }

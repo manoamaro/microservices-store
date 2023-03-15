@@ -19,6 +19,5 @@ func NewSubtractUseCase(inventoryRepository repository.InventoryRepository) Subt
 }
 
 func (r *subtractUseCase) Subtract(productId string, amount uint) (uint, error) {
-	amountAfter := r.repository.Subtract(productId, amount)
-	return amountAfter, nil
+	return r.repository.Subtract(productId, amount)
 }

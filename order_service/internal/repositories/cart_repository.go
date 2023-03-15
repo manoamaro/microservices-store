@@ -51,10 +51,20 @@ func (c *cartDBRepository) CartByUserId(userId string) (*entities.Cart, error) {
 }
 
 func (c *cartDBRepository) GetOrCreateByUserId(userId string) (*entities.Cart, error) {
-	var cart entities.Cart
-	tx := c.orm.
-		Preload(clause.Associations).
-		Where(&entities.Cart{UserId: userId, Status: entities.CartStatusOpen}).
-		FirstOrCreate(&cart)
+	cart := entities.Cart{UserId: userId, Status: entities.CartStatusOpen}
+	tx := c.orm.Debug().Clauses(
+		clause.OnConflict{
+			Columns: []clause.Column{{Name: "user_id"}},
+			TargetWhere: clause.Where{
+				Exprs: []clause.Expression{clause.Eq{
+					Column: "status",
+					Value:  entities.CartStatusOpen,
+				}},
+			},
+			DoUpdates: clause.AssignmentColumns([]string{"user_id"}),
+		}, clause.Returning{},
+	).Preload(clause.Associations).
+		Create(&cart)
+
 	return &cart, tx.Error
 }

@@ -102,7 +102,7 @@ Authorization: Bearer {{auth_token}}
 
 {
   "product_id": "{{productId}}",
-  "amount": 17
+  "amount": 10
 }
 
 ###
@@ -113,7 +113,7 @@ Authorization: Bearer {{auth_token}}
 
 {
   "product_id": "{{productId}}",
-  "amount": 1
+  "amount": 5
 }
 
 ###
@@ -125,7 +125,7 @@ Authorization: Bearer {{auth_token}}
 {
   "cart_id": "cartId",
   "product_id": "{{productId}}",
-  "amount": 12
+  "amount": 10
 }
 
 ###
