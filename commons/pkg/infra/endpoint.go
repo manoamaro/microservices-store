@@ -116,7 +116,7 @@ func (e *RequestEndpointCommand[Res]) Execute() (Res, error) {
 		if response, err := e.service.Client.Do(req); err != nil {
 			return r, err
 		} else if response.StatusCode != http.StatusOK {
-			return r, fmt.Errorf("error fetching inventory")
+			return r, fmt.Errorf(response.Status)
 		} else {
 			defer response.Body.Close()
 			if body, err := io.ReadAll(response.Body); err != nil {

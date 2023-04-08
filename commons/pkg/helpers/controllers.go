@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/collections"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
@@ -27,4 +28,12 @@ func AuthMiddleware(authService infra.AuthService, requiredDomains ...string) fu
 			context.Set(UserFlags, res.Flags)
 		}
 	}
+}
+
+func GetHost(ctx *gin.Context) string {
+	scheme := "http"
+	if ctx.Request.TLS != nil {
+		scheme = "https"
+	}
+	return fmt.Sprintf("%s://%s", scheme, ctx.Request.Host)
 }

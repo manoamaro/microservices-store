@@ -5,5 +5,5 @@ use (
 	./commons
 	./inventory_service
 	./products_service
-	order_service
+	./order_service
 )

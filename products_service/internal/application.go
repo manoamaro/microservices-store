@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"github.com/gin-contrib/cors"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 
 	"github.com/gin-gonic/gin"
@@ -41,6 +42,7 @@ func newProdApplication() *Application {
 
 func (a *Application) SetupRoutes() *gin.Engine {
 	r := gin.Default()
+	r.Use(cors.Default())
 	controller.NewProductController(r, a.AuthService, a.ProductsRepository)
 	controller.NewAdminProductController(r, a.ProductsRepository, a.AuthService)
 	return r

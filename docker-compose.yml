@@ -84,3 +84,24 @@ services:
       - 8083
     ports:
       - "8083:8083"
+
+  order:
+    build:
+      context: .
+      args:
+        BUILD_FOLDER: order_service
+    restart: on-failure
+    depends_on:
+      - postgres
+    environment:
+      AUTH_URL: "http://auth:8082"
+      INVENTORY_URL: "http://inventory:8083"
+      PRODUCT_URL: "http://products:8081"
+      DB_URL: "postgres://postgres:postgres@postgres:5432/order?sslmode=disable"
+      VIRTUAL_HOST: order.local
+      PORT: 8084
+      environment: prod
+    expose:
+      - 8084
+    ports:
+      - "8084:8084"

@@ -70,8 +70,8 @@ func (a *Application) Run(c chan error) {
 	a.RegisterControllers()
 	a.RunMigrations()
 
-	a.cartRepository.GetOrCreateByUserId("1234")
 	port := helpers.GetEnv("PORT", "8080")
+
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
 		WriteTimeout: time.Second * 15,

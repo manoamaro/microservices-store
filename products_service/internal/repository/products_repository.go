@@ -16,6 +16,7 @@ type ProductsRepository interface {
 	DeleteProduct(id primitive.ObjectID) (bool, error)
 	InsertProduct(product models.Product) (*models.Product, error)
 	UpdateProduct(product models.Product) (bool, error)
+	AddImage(id primitive.ObjectID, imagePath string) (bool, error)
 	CreateReview(productHexId string, userId string, rating int, comment string) (*models.Review, error)
 }
 
@@ -95,6 +96,24 @@ func (d *DefaultProductsRepository) InsertProduct(product models.Product) (*mode
 
 func (d *DefaultProductsRepository) UpdateProduct(product models.Product) (bool, error) {
 	if res, err := d.col.ReplaceOne(d.context, bson.M{"_id": product.Id}, product); err != nil {
+		return false, err
+	} else {
+		return res.ModifiedCount > 0, nil
+	}
+}
+
+func (d *DefaultProductsRepository) AddImage(id primitive.ObjectID, imagePath string) (bool, error) {
+	update := primitive.A{
+		primitive.M{
+			"$set": primitive.M{
+				"images": primitive.M{
+					"$ifNull": primitive.A{
+						primitive.M{"$concatArrays": primitive.A{"$images", primitive.A{imagePath}}},
+						primitive.A{imagePath},
+					}}},
+		},
+	}
+	if res, err := d.col.UpdateByID(d.context, id, update); err != nil {
 		return false, err
 	} else {
 		return res.ModifiedCount > 0, nil

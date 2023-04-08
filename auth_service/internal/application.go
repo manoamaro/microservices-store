@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/manoamaro/microservices-store/auth_service/internal/controllers"
 	"github.com/manoamaro/microservices-store/auth_service/internal/use_cases"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
@@ -47,6 +48,7 @@ func NewApplication() *Application {
 	})
 
 	engine := gin.Default()
+	engine.Use(cors.Default())
 
 	authRepository := repositories.NewDefaultAuthRepository(db, redisClient)
 	authController := controllers.NewAuthController(

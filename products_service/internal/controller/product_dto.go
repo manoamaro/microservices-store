@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"github.com/manoamaro/microservices-store/commons/pkg/collections"
 	"github.com/manoamaro/microservices-store/products_service/internal/models"
 	"github.com/samber/lo"
 )
@@ -10,11 +11,12 @@ type ProductDTO struct {
 	Id          string             `json:"id"`
 	Name        string             `json:"name"`
 	Description string             `json:"description"`
+	Images      []string           `json:"images"`
 	Price       ProductPriceDTO    `json:"price"`
 	Reviews     []ProductReviewDTO `json:"reviews"`
 }
 
-func FromProduct(product models.Product, currency string) (ProductDTO, error) {
+func FromProduct(product models.Product, currency string, host string) (ProductDTO, error) {
 	price, found := lo.Find(product.Prices, func(item models.Price) bool {
 		return item.Currency == currency
 	})
@@ -30,10 +32,15 @@ func FromProduct(product models.Product, currency string) (ProductDTO, error) {
 		}
 	})
 
+	images := collections.MapTo(product.Images, func(i string) string {
+		return fmt.Sprintf("%s/public/assets/%s", host, i)
+	})
+
 	return ProductDTO{
 		Id:          product.Id.Hex(),
 		Name:        product.Name,
 		Description: product.Description,
+		Images:      images,
 		Price: ProductPriceDTO{
 			Currency: price.Currency,
 			Value:    price.Value,

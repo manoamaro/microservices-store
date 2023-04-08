@@ -67,11 +67,30 @@ Authorization: Bearer {{auth_token}}
 
 ###
 
+POST {{products_host}}/admin/{{productId}}/upload
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="images[]"; filename="image1.jpg"
+
+< /Users/manoel/Downloads/template/assets/img/shop_01.jpg
+--WebAppBoundary
+Content-Disposition: form-data; name="images[]"; filename="image2.jpg"
+
+< /Users/manoel/Downloads/template/assets/img/shop_02.jpg
+--WebAppBoundary--
+
+###
+
 
 GET {{products_host}}/public
 Accept: application/json
 
-> {% client.global.set("productId", response.body[0].id); %}
+> {%
+    client.global.set("productId", response.body[0].id);
+%}
+
 ###
 
 GET {{products_host}}/public/{{productId}}
