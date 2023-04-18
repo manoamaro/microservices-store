@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {useContext, useState} from 'react';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -8,16 +9,17 @@ import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
-import {signIn} from "../src/services/authentication";
 import {useRouter} from "next/router";
 import {Snackbar} from "@mui/material";
-import {useState} from "react";
+import {AuthActionType, AuthDispatchContext} from "../src/AuthProvider";
+import AuthService from "../src/services/AuthService";
 
 export default function SignIn() {
 
     const router = useRouter();
     const [isLoading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const authDispatch = useContext(AuthDispatchContext);
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -28,8 +30,9 @@ export default function SignIn() {
             password: { value: string }
         }
 
-        signIn(form.email.value, form.password.value).then(() => {
-            router.push("/");
+        AuthService.signIn(form.email.value, form.password.value).then(() => {
+            authDispatch({type: AuthActionType.SET_AUTHENTICATED});
+            void router.push("/");
         }).catch(e => {
             setError(e.message);
         }).finally(() => setLoading(false));

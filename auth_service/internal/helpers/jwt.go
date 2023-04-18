@@ -50,7 +50,7 @@ func CreateTokens(authId uint, audience []string, flags []string) (string, strin
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        strconv.Itoa(int(authId)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 10)),
 			Audience:  audience,
 		},
 		AuthInfo: models.AuthInfo{

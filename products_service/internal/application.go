@@ -42,7 +42,12 @@ func newProdApplication() *Application {
 
 func (a *Application) SetupRoutes() *gin.Engine {
 	r := gin.Default()
-	r.Use(cors.Default())
+
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowCredentials = true
+	corsConfig.AllowOrigins = append(corsConfig.AllowOrigins, "http://localhost:3000")
+	r.Use(cors.New(corsConfig))
+
 	controller.NewProductController(r, a.AuthService, a.ProductsRepository)
 	controller.NewAdminProductController(r, a.ProductsRepository, a.AuthService)
 	return r
