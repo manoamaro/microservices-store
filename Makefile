@@ -1,14 +1,32 @@
-services := auth_service products_service
+VERSION ?= 0.1.0
+REPO = github.com/manoamaro/microservice-store
+BRANCH ?= develop
+MAIN_BRANCH ?= main
 
-build_fn = docker build -t ghcr.io/manoamaro/$(1):latest -f $(1)/Dockerfile .
-publish_fn = docker push ghcr.io/manoamaro/$(1):latest
+build-%:
+	cd $(@:build-%=%) && go build -o ../dist/$(notdir $(@:/=)) ./cmd/main.go
 
-build:
-	$(foreach service,$(services), $(call build_fn,$(service));)
+run-%:
+	cd $(@:run-%=%) && go run ./cmd/main.go
 
-publish: build
-	echo $(DOCKER_PASSWORD) | docker login ghcr.io -u $(DOCKER_USERNAME) --password-stdin
-	$(foreach service,$(services),$(call publish_fn,$(service));)
+test-%:
+	cd $(@:test-%=%) && go test ./...
 
-monolith:
-	go run store-monolith/cmd/main.go
+release-start:
+	git checkout $(BRANCH)
+	git pull origin $(BRANCH)
+	git checkout -b release-$(VERSION)
+
+release-finish:
+	git checkout $(MAIN_BRANCH)
+	git pull origin $(MAIN_BRANCH)
+	git merge release-$(VERSION) --no-ff -m "Merge release-$(VERSION) into $(MAIN_BRANCH)"
+	git tag -a v$(VERSION) -m "Version $(VERSION)"
+	git branch -d release-$(VERSION)
+	git push origin $(MAIN_BRANCH) v$(VERSION)
+	git checkout $(BRANCH)
+	git merge $(MAIN_BRANCH) --no-ff -m "Merge $(MAIN_BRANCH) into $(BRANCH)"
+	git push origin $(BRANCH)
+
+update-version:
+	go mod edit -version $(REPO)/v$(VERSION)
