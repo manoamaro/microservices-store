@@ -8,49 +8,59 @@ import {
     GridColDef
 } from "@mui/x-data-grid";
 import ProductService, {Product} from "../../src/services/ProductService";
-import {Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField} from "@mui/material";
+import {Button} from "@mui/material";
+import InventoryService from "../../src/services/InventoryService";
+import ProductDialog from "../../src/products/ProductDialog";
+import InventoryDialog from "../../src/products/InventoryDialog";
 
 
-interface ProductDialog {
-    open: boolean;
-    product: Product | null;
+interface ProductWithInventory extends Product {
+    inventory: number
 }
 
 export default function Index() {
 
-    const [products, setProducts] = useState<Product[]>([]);
-    const [productDialog, setProductDialog] = useState<ProductDialog>({open: false, product: null});
+    const [products, setProducts] = useState<ProductWithInventory[]>([]);
+    const [productDialog, setProductDialog] = useState<boolean>(false);
+    const [inventoryDialog, setInventoryDialog] = useState<boolean>(false);
+    const EMPTY_PRODUCT = {
+        id: "",
+        name: "",
+        description: "",
+        prices: [],
+        inventory: 0
+    };
+    const [selectedProduct, setSelectedProduct] = useState<ProductWithInventory>(EMPTY_PRODUCT);
 
     const loadProducts = async () => {
         try {
-            const data = await ProductService.getProducts();
-            setProducts(data);
+            const products = await ProductService.getProducts();
+            const productsWithInventory = await Promise.all(products.map(async product => {
+                const inventory = await InventoryService.getInventory(product.id || "");
+                return {...product, inventory: inventory.amount}
+            }));
+            setProducts(productsWithInventory);
         } catch (error) {
             console.error(error);
         }
     };
 
-    const createProduct = async (product: Product) => {
+    const createOrUpdateProduct = async (product: Product) => {
         try {
-            await ProductService.postProduct(product);
+            if (product.id) {
+                await ProductService.putProduct(product);
+            } else {
+                await ProductService.postProduct(product);
+            }
             await loadProducts();
-            setProductDialog({open: false, product: null});
+            setSelectedProduct(EMPTY_PRODUCT);
+            setProductDialog(false);
         } catch (error) {
             console.error(error);
         }
     };
 
-    const updateProduct = async (product: Product) => {
-        try {
-            await ProductService.putProduct(product);
-            await loadProducts();
-            setProductDialog({open: false, product: null});
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const deleteProduct = async (product: Product) => {
+    const deleteProduct = async () => {
         try {
             void loadProducts();
         } catch (error) {
@@ -58,101 +68,77 @@ export default function Index() {
         }
     };
 
-    const handleCreateClick = () => setProductDialog({open: true, product: null});
-    const handleEditClick = (product: Product) => {
+    const handleCreateClick = () => {
+        setSelectedProduct(EMPTY_PRODUCT);
+        setProductDialog(true);
+    }
+
+    const handleEditClick = (product: ProductWithInventory) => {
         if (product.id) {
-            ProductService.getProduct(product.id).then(p => setProductDialog({open: true, product: p}));
+            setSelectedProduct(product);
+            setProductDialog(true);
         }
     }
-    const handleDeleteClick = (params: GridCellParams) => deleteProduct(params.row as Product);
-    const handleClose = () => setProductDialog({open: false, product: null});
-    const handleChange = (name: string, value: any) => setProductDialog({
-        ...productDialog,
-        product: {
-            ...productDialog.product || {id: null, name: "", description: "", price: 0},
-            [name]: value
+
+    const handleInventoryClick = (product: ProductWithInventory) => {
+        if (product.id) {
+            setSelectedProduct(product);
+            setInventoryDialog(true);
         }
-    })
+    }
+
+    const handleDeleteClick = () => deleteProduct();
+    const handleClose = () => setProductDialog(false);
+    const handleInventoryClose = () => setInventoryDialog(false);
 
     useEffect(() => {
         void loadProducts();
     }, []);
 
-    const columns: GridColDef<Product>[] = [
+    const columns: GridColDef<ProductWithInventory>[] = [
         {field: "id", headerName: "ID"},
         {field: "name", headerName: "Name"},
         {field: "description", headerName: "Description"},
+        {field: "inventory", headerName: "Inventory"},
         {
             field: "actions",
             headerName: "Actions",
-            width: 200,
-            renderCell: (params: GridCellParams<Product>) => (
+            flex: 1,
+            renderCell: (params: GridCellParams<ProductWithInventory>) => (
                 <>
                     <Button onClick={() => handleEditClick(params.row)}>Edit</Button>
-                    <Button onClick={() => handleDeleteClick(params)}>Delete</Button>
+                    <Button onClick={() => handleDeleteClick()}>Delete</Button>
+                    <Button onClick={() => handleInventoryClick(params.row)}>Inventory</Button>
                 </>
             ),
         }
     ]
 
     return <Container maxWidth="lg">
-        <Box sx={{height: 400, width: '100%'}}>
+        <Box sx={{height: 800, width: '100%'}}>
             <DataGrid columns={columns} rows={products}/>
             <Button variant="contained" onClick={handleCreateClick}>
                 Create Product
             </Button>
         </Box>
-        <Dialog open={productDialog.open} onClose={handleClose}>
-            <DialogTitle>{productDialog.product?.id ? "Edit Product" : "Create Product"}</DialogTitle>
-            <DialogContent>
-                <TextField
-                    autoFocus
-                    margin="dense"
-                    id="name"
-                    label="Name"
-                    name="name"
-                    type="text"
-                    fullWidth
-                    value={productDialog.product?.name ?? ""}
-                    onChange={({target: {name, value}}) => handleChange(name, value)}
-                />
-                <TextField
-                    margin="dense"
-                    id="description"
-                    label="Description"
-                    type="text"
-                    name="description"
-                    fullWidth
-                    value={productDialog.product?.description ?? ""}
-                    onChange={({target: {name, value}}) => handleChange(name, value)}
-                />
-                <TextField
-                    margin="dense"
-                    id="price"
-                    label="Price"
-                    type="number"
-                    name="price"
-                    fullWidth
-                    value={productDialog.product?.price ?? ""}
-                    onChange={({target: {name, value}}) => handleChange(name, value)}
-                />
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
-                <Button
-                    onClick={() => {
-                        if (productDialog.product) {
-                            if (productDialog.product.id) {
-                                void updateProduct(productDialog.product);
-                            } else {
-                                void createProduct(productDialog.product);
-                            }
-                        }
-                    }}
-                >
-                    Save
-                </Button>
-            </DialogActions>
-        </Dialog>
+
+        <ProductDialog
+            key={selectedProduct.id}
+            isOpen={productDialog}
+            initialProduct={selectedProduct}
+            onClose={handleClose}
+            onSave={createOrUpdateProduct}/>
+
+        <InventoryDialog
+            key={selectedProduct.id}
+            isOpen={inventoryDialog}
+            initialInventory={selectedProduct.inventory}
+            onClose={handleInventoryClose}
+            onSave={async inventory => {
+                await InventoryService.putInventory(selectedProduct.id || "", inventory);
+                await loadProducts();
+                handleInventoryClose();
+            }}/>
+
     </Container>
 }

@@ -71,7 +71,7 @@ func (c *AdminProductController) putProductsHandler(ctx *gin.Context) {
 	newProduct := models.Product{}
 	if err := ctx.BindJSON(&newProduct); err != nil {
 		helpers.BadRequest(err, ctx)
-	} else if savedProduct, err := c.productsRepository.InsertProduct(newProduct); err != nil {
+	} else if savedProduct, err := c.productsRepository.UpdateProduct(newProduct); err != nil {
 		helpers.BadRequest(err, ctx)
 	} else {
 		ctx.JSON(http.StatusCreated, savedProduct)

@@ -3,6 +3,7 @@ package helpers
 import (
 	"errors"
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/collections"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
@@ -36,4 +37,12 @@ func GetHost(ctx *gin.Context) string {
 		scheme = "https"
 	}
 	return fmt.Sprintf("%s://%s", scheme, ctx.Request.Host)
+}
+
+func CorsConfig() cors.Config {
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowCredentials = true
+	corsConfig.AddAllowHeaders("Authorization")
+	corsConfig.AllowOrigins = append(corsConfig.AllowOrigins, "http://localhost:3000")
+	return corsConfig
 }

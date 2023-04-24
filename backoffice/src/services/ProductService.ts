@@ -7,6 +7,11 @@ export interface Product {
     id: string | null,
     name: string,
     description: string,
+    prices: ProductPrice[],
+}
+
+export interface ProductPrice {
+    currency: string,
     price: number,
 }
 

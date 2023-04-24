@@ -3,8 +3,10 @@ package internal
 import (
 	"embed"
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
+	"github.com/manoamaro/microservices-store/order_service/internal/controllers"
 	"github.com/manoamaro/microservices-store/order_service/internal/repositories"
 	"github.com/manoamaro/microservices-store/order_service/internal/service"
 	"gorm.io/driver/postgres"
@@ -44,17 +46,29 @@ func NewApplication() *Application {
 	}
 
 	engine := gin.Default()
+
+	authService := infra.NewDefaultAuthService(authUrl)
+	inventoryService := service.NewHttpInventoryService(inventoryUrl)
+
+	orderRepository := repositories.NewOrderDBRepository(gormDB)
+	cartRepository := repositories.NewCartDBRepository(gormDB)
+
 	return &Application{
 		engine:           engine,
 		migrator:         infra.NewMigrator(postgresUrl, migrationsFS),
-		authService:      infra.NewDefaultAuthService(authUrl),
-		inventoryService: service.NewHttpInventoryService(inventoryUrl),
-		cartRepository:   repositories.NewCartDBRepository(gormDB),
-		orderRepository:  repositories.NewOrderDBRepository(gormDB),
+		authService:      authService,
+		inventoryService: inventoryService,
+		cartRepository:   cartRepository,
+		orderRepository:  orderRepository,
+		controllers: []infra.Controller{
+			controllers.NewOrderController(engine, authService, orderRepository),
+		},
 	}
 }
 
 func (a *Application) RegisterControllers() {
+	// Enable CORS
+	a.engine.Use(cors.New(helpers.CorsConfig()))
 	for _, controller := range a.controllers {
 		controller.RegisterRoutes()
 	}

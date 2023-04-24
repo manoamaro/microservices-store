@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
-	"github.com/manoamaro/microservices-store/inventory_service/internal/use_cases/inventory"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -45,6 +45,9 @@ func NewApplication() *Application {
 	}), &gorm.Config{})
 
 	engine := gin.Default()
+	// Enable CORS
+	engine.Use(cors.New(helpers.CorsConfig()))
+
 	inventoryRepository := repository.NewInventoryDBRepository(gormDB)
 	authService := infra.NewDefaultAuthService(authUrl)
 	return &Application{
@@ -56,10 +59,7 @@ func NewApplication() *Application {
 			controller.NewInventoryController(
 				engine,
 				authService,
-				inventory.NewGetUseCase(inventoryRepository),
-				inventory.NewAddUseCase(inventoryRepository),
-				inventory.NewSubtractUseCase(inventoryRepository),
-				inventory.NewReserveUseCase(inventoryRepository),
+				inventoryRepository,
 			),
 		},
 	}

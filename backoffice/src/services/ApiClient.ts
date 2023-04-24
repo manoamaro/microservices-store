@@ -40,10 +40,10 @@ export class ApiClient {
             }
         }
 
-        if (options && options.body) {
+        if (options && options.body && (Array.isArray(options.body) || options.body instanceof Object)) {
             headers = {
                 ...headers,
-                "Content-Type": "application/json"
+                'Content-Type': 'application/json'
             }
             options.body = JSON.stringify(options.body);
         }
@@ -56,13 +56,8 @@ export class ApiClient {
             });
 
             if (response.status === 401 && this.onRefreshToken && refreshAttempts > 0) {
-                try {
-                    await this.onRefreshToken();
-                    return await this.request<T>(method, path, options, refreshAttempts - 1);
-                } catch (error) {
-                    debugger
-                    throw new Error("Refresh token failed");
-                }
+                await this.onRefreshToken();
+                return await this.request<T>(method, path, options, refreshAttempts - 1);
             } else if (response.ok) {
                 return await response.json();
             } else {
