@@ -1,13 +1,14 @@
 import {ApiClient} from "./ApiClient";
 import AuthService, {getToken} from "./AuthService";
 
-const PRODUCTS_HOST = "http://localhost:8082";
+export const PRODUCTS_HOST = "http://localhost:8082";
 
 export interface Product {
     id: string | null,
     name: string,
     description: string,
     prices: ProductPrice[],
+    images: string[],
 }
 
 export interface ProductPrice {

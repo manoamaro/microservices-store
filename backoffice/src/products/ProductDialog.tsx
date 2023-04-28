@@ -16,7 +16,8 @@ const ProductDialog: React.FC<EditProductDialogProps> = (props: EditProductDialo
         id: "",
         name: "",
         description: "",
-        prices: []
+        prices: [],
+        images: []
     });
 
     const handleChange = (name: string, value: any) => setProduct({
