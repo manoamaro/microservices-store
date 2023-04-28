@@ -6,9 +6,10 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
-	"github.com/manoamaro/microservices-store/order_service/internal/controllers"
-	"github.com/manoamaro/microservices-store/order_service/internal/repositories"
-	"github.com/manoamaro/microservices-store/order_service/internal/service"
+	driven2 "github.com/manoamaro/microservices-store/order_service/internal/adapters/driven"
+	driver_adapters "github.com/manoamaro/microservices-store/order_service/internal/adapters/driver"
+	driven_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports/driven"
+	driver_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports/driver"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -23,19 +24,17 @@ import (
 var migrationsFS embed.FS
 
 type Application struct {
-	engine           *gin.Engine
-	authService      infra.AuthService
-	inventoryService service.InventoryService
-	cartRepository   repositories.CartRepository
-	orderRepository  repositories.OrderRepository
-	controllers      []infra.Controller
-	migrator         infra.Migrator
+	engine          *gin.Engine
+	cartRepository  driven_ports.CartRepository
+	orderRepository driven_ports.OrderRepository
+	orderApi        driver_ports.OrderApi
+	migrator        infra.Migrator
 }
 
 func NewApplication() *Application {
 	postgresUrl := helpers.GetEnv("POSTGRES_URL", "postgres://postgres:postgres@localhost:5432/order_service?sslmode=disable")
-	authUrl := helpers.GetEnv("AUTH_SERVICE_URL", "http://localhost:8080")
-	inventoryUrl := helpers.GetEnv("INVENTORY_SERVICE_URL", "http://localhost:8080")
+	//authUrl := helpers.GetEnv("AUTH_SERVICE_URL", "http://localhost:8080")
+	//inventoryUrl := helpers.GetEnv("INVENTORY_SERVICE_URL", "http://localhost:8080")
 
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		DSN: postgresUrl,
@@ -47,31 +46,25 @@ func NewApplication() *Application {
 
 	engine := gin.Default()
 
-	authService := infra.NewDefaultAuthService(authUrl)
-	inventoryService := service.NewHttpInventoryService(inventoryUrl)
-
-	orderRepository := repositories.NewOrderDBRepository(gormDB)
-	cartRepository := repositories.NewCartDBRepository(gormDB)
+	orderRepository := driven2.NewOrderDBRepository(gormDB)
+	cartRepository := driven2.NewCartDBRepository(gormDB)
 
 	return &Application{
-		engine:           engine,
-		migrator:         infra.NewMigrator(postgresUrl, migrationsFS),
-		authService:      authService,
-		inventoryService: inventoryService,
-		cartRepository:   cartRepository,
-		orderRepository:  orderRepository,
-		controllers: []infra.Controller{
-			controllers.NewOrderController(engine, authService, orderRepository),
-		},
+		engine:          engine,
+		migrator:        infra.NewMigrator(postgresUrl, migrationsFS),
+		cartRepository:  cartRepository,
+		orderRepository: orderRepository,
+		orderApi:        driver_adapters.NewGinOrderHandler(engine),
 	}
 }
 
-func (a *Application) RegisterControllers() {
+func (a *Application) RegisterRoutes() {
 	// Enable CORS
 	a.engine.Use(cors.New(helpers.CorsConfig()))
-	for _, controller := range a.controllers {
-		controller.RegisterRoutes()
-	}
+	a.engine.Handle("GET", "/health", func(ctx *gin.Context) {
+
+		ctx.JSON(200, gin.H{"status": "ok"})
+	})
 }
 
 func (a *Application) RunMigrations() {
@@ -81,7 +74,7 @@ func (a *Application) RunMigrations() {
 }
 
 func (a *Application) Run(c chan error) {
-	a.RegisterControllers()
+	a.RegisterRoutes()
 	a.RunMigrations()
 
 	port := helpers.GetEnv("PORT", "8080")

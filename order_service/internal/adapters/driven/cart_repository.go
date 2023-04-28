@@ -1,44 +1,38 @@
-package repositories
+package driven_adapters
 
 import (
 	"context"
 	"fmt"
-	"github.com/manoamaro/microservices-store/order_service/internal/entities"
+	"github.com/manoamaro/microservices-store/order_service/internal/core/domain"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
-
-type CartRepository interface {
-	Get(id uint) *entities.Cart
-	CartByUserId(userId string) (*entities.Cart, error)
-	GetOrCreateByUserId(userId string) (*entities.Cart, error)
-}
 
 type cartDBRepository struct {
 	context context.Context
 	orm     *gorm.DB
 }
 
-func NewCartDBRepository(gormDB *gorm.DB) CartRepository {
+func NewCartDBRepository(gormDB *gorm.DB) driven_ports.CartRepository {
 	return &cartDBRepository{
 		context: context.Background(),
 		orm:     gormDB,
 	}
 }
 
-func (c *cartDBRepository) Get(id uint) *entities.Cart {
-	var cart entities.Cart
+func (c *cartDBRepository) Get(id uint) *domain.Cart {
+	var cart domain.Cart
 	c.orm.
 		Preload(clause.Associations).
 		First(&cart, id)
 	return &cart
 }
 
-func (c *cartDBRepository) CartByUserId(userId string) (*entities.Cart, error) {
-	var results []entities.Cart
+func (c *cartDBRepository) CartByUserId(userId string) (*domain.Cart, error) {
+	var results []domain.Cart
 	tx := c.orm.
 		Preload(clause.Associations).
-		Where(&entities.Cart{UserId: userId, Status: entities.CartStatusOpen}).
+		Where(&domain.Cart{UserId: userId, Status: domain.CartStatusOpen}).
 		Find(&results)
 	if tx.Error != nil {
 		return nil, tx.Error
@@ -50,15 +44,15 @@ func (c *cartDBRepository) CartByUserId(userId string) (*entities.Cart, error) {
 	}
 }
 
-func (c *cartDBRepository) GetOrCreateByUserId(userId string) (*entities.Cart, error) {
-	cart := entities.Cart{UserId: userId, Status: entities.CartStatusOpen}
+func (c *cartDBRepository) GetOrCreateByUserId(userId string) (*domain.Cart, error) {
+	cart := domain.Cart{UserId: userId, Status: domain.CartStatusOpen}
 	tx := c.orm.Debug().Clauses(
 		clause.OnConflict{
 			Columns: []clause.Column{{Name: "user_id"}},
 			TargetWhere: clause.Where{
 				Exprs: []clause.Expression{clause.Eq{
 					Column: "status",
-					Value:  entities.CartStatusOpen,
+					Value:  domain.CartStatusOpen,
 				}},
 			},
 			DoUpdates: clause.AssignmentColumns([]string{"user_id"}),

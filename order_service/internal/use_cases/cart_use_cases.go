@@ -2,8 +2,8 @@ package use_cases
 
 import (
 	"fmt"
-	"github.com/manoamaro/microservices-store/order_service/internal/entities"
-	"github.com/manoamaro/microservices-store/order_service/internal/repositories"
+	"github.com/manoamaro/microservices-store/order_service/internal/core/domain"
+	"github.com/manoamaro/microservices-store/order_service/internal/core/ports/driven"
 	"github.com/manoamaro/microservices-store/order_service/internal/service"
 	"strconv"
 )
@@ -25,13 +25,13 @@ type UpdateItemCartUseCase interface {
 }
 
 type cartUseCase struct {
-	repository       repositories.CartRepository
+	repository       driven_ports.CartRepository
 	productService   service.ProductService
 	inventoryService service.InventoryService
 }
 
 func NewGetCartUseCase(
-	repository repositories.CartRepository,
+	repository driven_ports.CartRepository,
 	productService service.ProductService,
 	inventoryService service.InventoryService,
 ) GetCartUseCase {
@@ -43,7 +43,7 @@ func NewGetCartUseCase(
 }
 
 func NewAddItemToCartUseCase(
-	repository repositories.CartRepository,
+	repository driven_ports.CartRepository,
 	productService service.ProductService,
 	inventoryService service.InventoryService,
 ) AddItemToCartUseCase {
@@ -55,7 +55,7 @@ func NewAddItemToCartUseCase(
 }
 
 func NewGetUserCartUseCase(
-	repository repositories.CartRepository,
+	repository driven_ports.CartRepository,
 	productService service.ProductService,
 	inventoryService service.InventoryService,
 ) GetUserCartUseCase {
@@ -77,7 +77,7 @@ func (c *cartUseCase) GetUserCart(userId string) {
 }
 
 func (c *cartUseCase) AddItem(cartId uint, productId string, quantity uint) error {
-	if cart := c.repository.Get(cartId); cart.Status != entities.CartStatusOpen {
+	if cart := c.repository.Get(cartId); cart.Status != domain.CartStatusOpen {
 		return fmt.Errorf("cart is not open")
 	} else if product, err := c.productService.Get(productId); err != nil {
 		return err

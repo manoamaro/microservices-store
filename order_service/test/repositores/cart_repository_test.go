@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/go-playground/assert/v2"
 	_ "github.com/lib/pq"
-	"github.com/manoamaro/microservices-store/order_service/internal/repositories"
+	driven2 "github.com/manoamaro/microservices-store/order_service/internal/adapters/driven"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
@@ -16,7 +16,7 @@ import (
 type cartRepositorySuite struct {
 	suite.Suite
 	DB         *gorm.DB
-	repository repositories.CartRepository
+	repository driven_ports.CartRepository
 }
 
 func (s *cartRepositorySuite) SetupSuite() {
@@ -35,7 +35,7 @@ func (s *cartRepositorySuite) SetupSuite() {
 	}), &gorm.Config{})
 	require.NoError(s.T(), err)
 
-	s.repository = repositories.NewCartDBRepository(s.DB)
+	s.repository = driven2.NewCartDBRepository(s.DB)
 }
 
 func (s *cartRepositorySuite) TestGetOrCreateCart() {

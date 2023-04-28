@@ -30,3 +30,20 @@ release-finish:
 
 update-version:
 	go mod edit -version $(REPO)/v$(VERSION)
+
+changelog:
+	@echo "Updating CHANGELOG.md..."
+	@echo "" > CHANGELOG.tmp.md
+	@echo "## [$(VERSION)] - $$(date +'%Y-%m-%d')" >> CHANGELOG.tmp.md
+	@echo "" >> CHANGELOG.tmp.md
+	@echo "### Added" >> CHANGELOG.tmp.md
+	@git log --pretty=format:'- %s' --grep='^Added' $(PREV_VERSION)..HEAD >> CHANGELOG.tmp.md || true
+	@echo "" >> CHANGELOG.tmp.md
+	@echo "### Removed" >> CHANGELOG.tmp.md
+	@git log --pretty=format:'- %s' --grep='^Removed' $(PREV_VERSION)..HEAD >> CHANGELOG.tmp.md || true
+	@echo "" >> CHANGELOG.tmp.md
+	@echo "### Changed" >> CHANGELOG.tmp.md
+	@git log --pretty=format:'- %s' --grep='^Changed' $(PREV_VERSION)..HEAD >> CHANGELOG.tmp.md || true
+	@echo "" >> CHANGELOG.tmp.md
+	@cat CHANGELOG.md >> CHANGELOG.tmp.md
+	@mv CHANGELOG.tmp.md CHANGELOG.md
