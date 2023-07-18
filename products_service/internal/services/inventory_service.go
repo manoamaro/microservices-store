@@ -13,16 +13,16 @@ type InventoryService interface {
 }
 
 type DefaultInventoryService struct {
-	*infra.Service
+	*infra.HttpService
 	amountOfEndpoint *infra.Endpoint[int]
 	addEndpoint      *infra.Endpoint[int]
 	subtractEndpoint *infra.Endpoint[int]
 }
 
 func NewDefaultInventoryService(host string) InventoryService {
-	service := infra.NewService(host)
+	service := infra.NewHttpService(host)
 	return &DefaultInventoryService{
-		Service:          service,
+		HttpService:      service,
 		amountOfEndpoint: infra.NewEndpoint[int](service, http.MethodGet, "/inventory/:productId", 10, 3000),
 		addEndpoint:      infra.NewEndpoint[int](service, http.MethodPost, "/inventory/add", 10, 3000),
 		subtractEndpoint: infra.NewEndpoint[int](service, http.MethodPost, "/inventory/subtract", 10, 3000),

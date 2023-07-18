@@ -49,7 +49,7 @@ func NewApplication() *Application {
 	engine.Use(cors.New(helpers.CorsConfig()))
 
 	inventoryRepository := repository.NewInventoryDBRepository(gormDB)
-	authService := infra.NewDefaultAuthService(authUrl)
+	authService := infra.NewHttpAuthService(authUrl)
 	return &Application{
 		engine:              engine,
 		inventoryRepository: inventoryRepository,

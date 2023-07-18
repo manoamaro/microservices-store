@@ -13,14 +13,14 @@ type InventoryService interface {
 }
 
 type httpInventoryService struct {
-	*infra.Service
+	*infra.HttpService
 	reserveEndpoint *infra.Endpoint[uint]
 }
 
 func NewHttpInventoryService(host string) InventoryService {
-	service := infra.NewService(host)
+	service := infra.NewHttpService(host)
 	return &httpInventoryService{
-		Service:         service,
+		HttpService:     service,
 		reserveEndpoint: infra.NewEndpoint[uint](service, http.MethodPost, "/public/reserve", 10, 1000),
 	}
 }

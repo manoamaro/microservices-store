@@ -22,14 +22,14 @@ type ProductService interface {
 }
 
 type httpProductService struct {
-	infra.Service
+	infra.HttpService
 	getProductEndpoint *infra.Endpoint[ProductDTO]
 }
 
 func NewHttpProductService(host string) ProductService {
-	service := infra.NewService(host)
+	service := infra.NewHttpService(host)
 	return &httpProductService{
-		Service:            *service,
+		HttpService:        *service,
 		getProductEndpoint: infra.NewEndpoint[ProductDTO](service, http.MethodGet, "/public/:id", 10, 1000),
 	}
 }

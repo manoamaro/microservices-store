@@ -1,7 +1,14 @@
 package infra
 
 import (
+	"errors"
+	"github.com/manoamaro/microservices-store/commons/pkg/collections"
 	"net/http"
+	"time"
+)
+
+var (
+	ErrorUnauthorized = errors.New("unauthorized")
 )
 
 type AuthService interface {
@@ -15,15 +22,19 @@ type VerifyResponse struct {
 }
 
 type httpAuthService struct {
-	*Service
 	verifyEndpoint *Endpoint[VerifyResponse]
 }
 
-func NewDefaultAuthService(host string) AuthService {
-	service := NewService(host)
+func NewHttpAuthService(host string) AuthService {
+	service := NewHttpService(host)
 	return &httpAuthService{
-		Service:        service,
-		verifyEndpoint: NewEndpoint[VerifyResponse](service, http.MethodGet, "/public/verify", 10, 10*10e9),
+		verifyEndpoint: NewEndpoint[VerifyResponse](
+			service,
+			http.MethodGet,
+			"/public/verify",
+			10,
+			time.Second*60,
+		),
 	}
 }
 
@@ -34,5 +45,11 @@ func (d *httpAuthService) Validate(token string, audiences ...string) (*VerifyRe
 	if err != nil {
 		return nil, err
 	}
-	return &response, err
+	if response.Audiences == nil || len(response.Audiences) == 0 {
+		return &response, nil
+	} else if collections.ContainsAny(response.Audiences, audiences) {
+		return &response, nil
+	} else {
+		return nil, ErrorUnauthorized
+	}
 }

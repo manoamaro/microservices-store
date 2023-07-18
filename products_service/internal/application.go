@@ -36,7 +36,7 @@ func newProdApplication() *Application {
 	mongoDB := mongoClient.Database(ProductsServiceDatabase)
 	return &Application{
 		ProductsRepository: repository.NewDefaultProductsRepository(mongoDB),
-		AuthService:        infra.NewDefaultAuthService(authUrl),
+		AuthService:        infra.NewHttpAuthService(authUrl),
 	}
 }
 

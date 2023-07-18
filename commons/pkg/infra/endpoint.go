@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/manoamaro/gobreaker/v2"
 	"io"
 	"net/http"
 	"net/url"
@@ -15,22 +14,16 @@ import (
 type Endpoint[Res any] struct {
 	method  string
 	path    string
-	service *Service
-	CB      *gobreaker.CircuitBreaker[Res]
+	service *HttpService
+	CB      *CircuitBreaker[Res]
 }
 
-func NewEndpoint[T any](service *Service, method string, path string, maxRequests uint32, interval time.Duration) *Endpoint[T] {
-	st := gobreaker.Settings{
-		Name:        fmt.Sprintf("[%s]%s%s", method, service.Host, path),
-		MaxRequests: maxRequests,
-		Interval:    interval,
-	}
-
+func NewEndpoint[T any](service *HttpService, method string, path string, maxRequests int, interval time.Duration) *Endpoint[T] {
 	return &Endpoint[T]{
 		method:  method,
 		path:    path,
 		service: service,
-		CB:      gobreaker.NewCircuitBreaker[T](st),
+		CB:      NewCircuitBreaker[T](maxRequests, interval),
 	}
 }
 
@@ -111,7 +104,7 @@ func (e *RequestEndpointCommand[Res]) Execute() (Res, error) {
 		req.Header.Add(k, v)
 	}
 
-	response, err = e.CB.Execute(func() (Res, error) {
+	response, err = e.CB.Call(func() (Res, error) {
 		var r Res
 		if response, err := e.service.Client.Do(req); err != nil {
 			return r, err
