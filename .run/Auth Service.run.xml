@@ -2,10 +2,7 @@
     <configuration default="false" name="Auth Service" type="GoApplicationRunConfiguration"
                    factoryName="Go Application">
         <module name="microservices-store"/>
-        <working_directory value="$PROJECT_DIR$"/>
-        <envs>
-            <env name="PORT" value="8080"/>
-        </envs>
+        <working_directory value="$PROJECT_DIR$/auth_service"/>
         <kind value="PACKAGE"/>
         <package value="github.com/manoamaro/microservices-store/auth_service/cmd"/>
         <directory value="$PROJECT_DIR$"/>

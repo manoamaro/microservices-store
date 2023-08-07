@@ -10,17 +10,30 @@ import {
 } from "@mui/material";
 import TextField from "@mui/material/TextField";
 import {Delete} from "@mui/icons-material";
-import ProductService, {PRODUCTS_HOST} from "../services/ProductService";
+import ProductService, {EMPTY_PRODUCT, Product, ProductImage, PRODUCTS_HOST} from "../services/ProductService";
 
 interface ImageDialogProps {
     isOpen: boolean;
-    initialImages?: string[];
+    product?: Product;
     onClose: () => void;
-    onSave: (images: string[]) => void;
 }
 
-const ImageDialog: React.FC<ImageDialogProps> = ({isOpen, initialImages, onClose, onSave}) => {
-    const [images, setImages] = useState<string[]>(initialImages || []);
+const ImageDialog: React.FC<ImageDialogProps> = ({isOpen, product, onClose}) => {
+    const [images, setImages] = useState<ProductImage[]>(product?.images || []);
+
+    const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && product?.id) {
+            const updatedProduct = await ProductService.postProductImages(product.id, event.target.files);
+            setImages(updatedProduct.images);
+        }
+    }
+
+    const handleDelete = async (image: ProductImage) => {
+        if (product?.id) {
+            const updatedProduct = await ProductService.deleteProductImage(product.id, image.id);
+            setImages(updatedProduct.images || []);
+        }
+    }
 
     return (
         <Dialog open={isOpen} onClose={onClose}>
@@ -30,8 +43,8 @@ const ImageDialog: React.FC<ImageDialogProps> = ({isOpen, initialImages, onClose
                     {images.map((image, idx) => (
                         <ImageListItem key={idx}>
                             <img
-                                src={`${PRODUCTS_HOST}/public/assets/${image}`}
-                                alt={image}
+                                src={`${image.url}`}
+                                alt={image.description}
                                 loading="lazy"
                             />
                             <ImageListItemBar
@@ -39,7 +52,7 @@ const ImageDialog: React.FC<ImageDialogProps> = ({isOpen, initialImages, onClose
                                 position="below"
                                 actionPosition="left"
                                 actionIcon={
-                                    <IconButton>
+                                    <IconButton onClick={() => handleDelete(image)}>
                                         <Delete/>
                                     </IconButton>
                                 }
@@ -49,8 +62,11 @@ const ImageDialog: React.FC<ImageDialogProps> = ({isOpen, initialImages, onClose
                 </ImageList>
             </DialogContent>
             <DialogActions>
+                <Button variant="contained" component="label">
+                    Upload File
+                    <input type="file" hidden accept="image/*" multiple onChange={handleUpload}/>
+                </Button>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={() => onSave(images)}>Save</Button>
             </DialogActions>
         </Dialog>
     );

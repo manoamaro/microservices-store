@@ -1,10 +1,12 @@
 package use_cases
 
 import (
-	"fmt"
+	"errors"
 	"github.com/manoamaro/microservices-store/auth_service/internal/helpers"
 	"github.com/manoamaro/microservices-store/auth_service/internal/repositories"
 )
+
+var ErrUserNotFound = errors.New("user not found")
 
 type SignInDTO struct {
 	Email         string
@@ -33,7 +35,7 @@ func NewSignInUseCase(repository repositories.AuthRepository) SignInUseCase {
 func (s *signInUseCase) SignIn(signInDTO SignInDTO) (SignInResultDTO, error) {
 	result := SignInResultDTO{}
 	if auth, found := s.repository.Authenticate(signInDTO.Email, signInDTO.PlainPassword); !found {
-		return result, fmt.Errorf("user not found")
+		return result, ErrUserNotFound
 	} else if accessToken, refreshToken, err := helpers.CreateTokens(auth.ID, auth.DomainArray(), auth.FlagsArray()); err != nil {
 		return result, err
 	} else {

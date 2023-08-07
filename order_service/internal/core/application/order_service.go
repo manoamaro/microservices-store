@@ -24,9 +24,7 @@ func (s *OrderService) GetOrder(id uint) (*Order, error) {
 
 func toDTO(dbOrder domain.Order) *Order {
 	cart := Cart{
-		Id:     dbOrder.Cart.ID,
-		Status: dbOrder.Cart.Status,
-		Items: collections.MapTo(dbOrder.Cart.Items, func(i domain.CartItem) CartItem {
+		Items: collections.MapTo(dbOrder.Items, func(i domain.OrderItem) CartItem {
 			return CartItem{
 				ProductId: i.ProductId,
 				Quantity:  i.Quantity,

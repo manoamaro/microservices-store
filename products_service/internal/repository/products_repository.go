@@ -17,6 +17,7 @@ type ProductsRepository interface {
 	InsertProduct(product models.Product) (*models.Product, error)
 	UpdateProduct(product models.Product) (bool, error)
 	AddImage(id primitive.ObjectID, imagePath string) (bool, error)
+	DeleteImage(id primitive.ObjectID, imageId string) (bool, error)
 	CreateReview(productHexId string, userId string, rating int, comment string) (*models.Review, error)
 }
 
@@ -113,6 +114,26 @@ func (d *DefaultProductsRepository) AddImage(id primitive.ObjectID, imagePath st
 					}}},
 		},
 	}
+	if res, err := d.col.UpdateByID(d.context, id, update); err != nil {
+		return false, err
+	} else {
+		return res.ModifiedCount > 0, nil
+	}
+}
+
+func (d *DefaultProductsRepository) DeleteImage(id primitive.ObjectID, imageId string) (bool, error) {
+	update := primitive.A{
+		primitive.M{
+			"$set": primitive.M{
+				"images": primitive.M{
+					"$filter": primitive.M{
+						"input": "$images",
+						"as":    "image",
+						"cond":  primitive.M{"$ne": primitive.A{"$$image", imageId}},
+					}}},
+		},
+	}
+
 	if res, err := d.col.UpdateByID(d.context, id, update); err != nil {
 		return false, err
 	} else {

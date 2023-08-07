@@ -40,12 +40,16 @@ export class ApiClient {
             }
         }
 
-        if (options && options.body && (Array.isArray(options.body) || options.body instanceof Object)) {
-            headers = {
-                ...headers,
-                'Content-Type': 'application/json'
+        if (options && options.body) {
+            if (options.body instanceof FormData) {
+                console.log("FormData");
+            } else if (Array.isArray(options.body) || options.body instanceof Object) {
+                headers = {
+                    ...headers,
+                    'Content-Type': 'application/json'
+                }
+                options.body = JSON.stringify(options.body);
             }
-            options.body = JSON.stringify(options.body);
         }
 
         try {

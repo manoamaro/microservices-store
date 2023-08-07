@@ -3,17 +3,19 @@ package internal
 import (
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/manoamaro/microservices-store/auth_service/internal/controllers"
 	"github.com/manoamaro/microservices-store/auth_service/internal/use_cases"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
-	"log"
+	"github.com/redis/go-redis/v9"
+	"golang.org/x/exp/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v9"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/manoamaro/microservices-store/auth_service/internal/repositories"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
@@ -21,6 +23,8 @@ import (
 
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
+
+var logger = slog.Default().WithGroup("application")
 
 type Application struct {
 	db             *sql.DB
@@ -32,12 +36,14 @@ type Application struct {
 }
 
 func NewApplication() *Application {
+
 	postgresUrl := helpers.GetEnv("POSTGRES_URL", "postgres://postgres:postgres@localhost:5432/auth_service?sslmode=disable")
 
 	db, err := sql.Open("postgres", postgresUrl)
 
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("Error connecting to database: %s", err.Error())
+		os.Exit(1)
 	}
 
 	redisClient := redis.NewClient(&redis.Options{
@@ -51,7 +57,7 @@ func NewApplication() *Application {
 	// Enable CORS
 	engine.Use(cors.New(helpers.CorsConfig()))
 
-	authRepository := repositories.NewDefaultAuthRepository(db, redisClient)
+	authRepository := repositories.NewDBAuthRepository(db, redisClient)
 	authController := controllers.NewAuthController(
 		engine,
 		use_cases.NewSignInUseCase(authRepository),
@@ -71,8 +77,9 @@ func NewApplication() *Application {
 }
 
 func (a *Application) RunMigrations() {
-	if err := a.migrator.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatal(err)
+	if err := a.migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		logger.Error("Error running migrations: %s", err.Error())
+		os.Exit(1)
 	}
 }
 

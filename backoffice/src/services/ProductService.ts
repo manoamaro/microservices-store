@@ -8,13 +8,27 @@ export interface Product {
     name: string,
     description: string,
     prices: ProductPrice[],
-    images: string[],
+    images: ProductImage[],
 }
 
 export interface ProductPrice {
     currency: string,
     price: number,
 }
+
+export interface ProductImage {
+    id: string,
+    url: string,
+    description: string
+}
+
+export const EMPTY_PRODUCT: Product = {
+    id: "",
+    name: "",
+    description: "",
+    prices: [],
+    images: []
+};
 
 class ProductService extends ApiClient {
 
@@ -41,6 +55,19 @@ class ProductService extends ApiClient {
     async putProduct(product: Product): Promise<Product> {
         return await this.request<Product>("PUT", `/admin/${product.id}`, {body: product});
     }
+
+    async postProductImages(id: string, files: FileList): Promise<Product> {
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append("images", files[i]);
+        }
+        return await this.request<Product>("POST", `/admin/${id}/upload`, {body: formData});
+    }
+
+    async deleteProductImage(id: string, imageId: string): Promise<Product> {
+        return await this.request<Product>("DELETE", `/admin/${id}/image/${imageId}`);
+    }
+
 }
 
 export default new ProductService();

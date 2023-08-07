@@ -8,6 +8,7 @@ import (
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	driven2 "github.com/manoamaro/microservices-store/order_service/internal/adapters/driven"
 	driver_adapters "github.com/manoamaro/microservices-store/order_service/internal/adapters/driver"
+	"github.com/manoamaro/microservices-store/order_service/internal/core/application"
 	driven_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports/driven"
 	driver_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports/driver"
 	"gorm.io/driver/postgres"
@@ -25,7 +26,6 @@ var migrationsFS embed.FS
 
 type Application struct {
 	engine          *gin.Engine
-	cartRepository  driven_ports.CartRepository
 	orderRepository driven_ports.OrderRepository
 	orderApi        driver_ports.OrderApi
 	migrator        infra.Migrator
@@ -46,15 +46,14 @@ func NewApplication() *Application {
 
 	engine := gin.Default()
 
-	orderRepository := driven2.NewOrderDBRepository(gormDB)
-	cartRepository := driven2.NewCartDBRepository(gormDB)
+	orderRepository, _ := driven2.NewOrderESRepository(gormDB)
+	orderService := application.NewOrderService(orderRepository)
 
 	return &Application{
 		engine:          engine,
 		migrator:        infra.NewMigrator(postgresUrl, migrationsFS),
-		cartRepository:  cartRepository,
 		orderRepository: orderRepository,
-		orderApi:        driver_adapters.NewGinOrderHandler(engine),
+		orderApi:        driver_adapters.NewGinOrderHandler(engine, orderService),
 	}
 }
 

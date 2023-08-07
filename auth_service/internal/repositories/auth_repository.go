@@ -6,11 +6,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"log"
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis/v9"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/lib/pq"
 	"github.com/manoamaro/microservices-store/auth_service/models"
@@ -27,14 +27,14 @@ type AuthRepository interface {
 	IsInvalidatedToken(rawToken string) bool
 }
 
-type DefaultAuthRepository struct {
+type dbAuthRepository struct {
 	context     context.Context
 	redisClient *redis.Client
 	db          *sql.DB
 	ormDB       *gorm.DB
 }
 
-func NewDefaultAuthRepository(db *sql.DB, redisClient *redis.Client) AuthRepository {
+func NewDBAuthRepository(db *sql.DB, redisClient *redis.Client) AuthRepository {
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: db,
 	}), &gorm.Config{})
@@ -43,14 +43,14 @@ func NewDefaultAuthRepository(db *sql.DB, redisClient *redis.Client) AuthReposit
 		log.Fatal(err)
 	}
 
-	return &DefaultAuthRepository{
+	return &dbAuthRepository{
 		context:     context.Background(),
 		redisClient: redisClient,
 		db:          db,
 		ormDB:       gormDB,
 	}
 }
-func (s *DefaultAuthRepository) Get(id uint) (auth models.Auth, err error) {
+func (s *dbAuthRepository) Get(id uint) (auth models.Auth, err error) {
 	if tx := s.ormDB.Preload(clause.Associations).First(&auth, id); tx.Error != nil {
 		return auth, tx.Error
 	} else {
@@ -58,7 +58,7 @@ func (s *DefaultAuthRepository) Get(id uint) (auth models.Auth, err error) {
 	}
 }
 
-func (s *DefaultAuthRepository) Create(email string, plainPassword string, audience []string, flags []string) (auth *models.Auth, err error) {
+func (s *dbAuthRepository) Create(email string, plainPassword string, audience []string, flags []string) (auth *models.Auth, err error) {
 	s.ormDB.Where(&models.Auth{Email: email}).First(&auth)
 	if auth != nil && auth.ID > 0 {
 		return nil, errors.New("user already exists")
@@ -86,7 +86,7 @@ func (s *DefaultAuthRepository) Create(email string, plainPassword string, audie
 	return auth, nil
 }
 
-func (s *DefaultAuthRepository) Authenticate(email string, plainPassword string) (auth *models.Auth, found bool) {
+func (s *dbAuthRepository) Authenticate(email string, plainPassword string) (auth *models.Auth, found bool) {
 	s.ormDB.Preload(clause.Associations).Where(&models.Auth{Email: email}).First(&auth)
 	if auth.ID == 0 {
 		return nil, false
@@ -97,7 +97,7 @@ func (s *DefaultAuthRepository) Authenticate(email string, plainPassword string)
 	}
 }
 
-func (s *DefaultAuthRepository) InvalidateToken(token *models.UserClaims, rawToken string) error {
+func (s *dbAuthRepository) InvalidateToken(token *models.UserClaims, rawToken string) error {
 	key := s.getRedisInvalidTokenKey(rawToken)
 	expiration := time.Now().Sub(token.ExpiresAt.Time)
 	err := s.redisClient.Set(s.context, key, true, expiration).Err()
@@ -108,13 +108,13 @@ func (s *DefaultAuthRepository) InvalidateToken(token *models.UserClaims, rawTok
 	return nil
 }
 
-func (s *DefaultAuthRepository) IsInvalidatedToken(rawToken string) bool {
+func (s *dbAuthRepository) IsInvalidatedToken(rawToken string) bool {
 	key := s.getRedisInvalidTokenKey(rawToken)
 	val, _ := s.redisClient.Get(s.context, key).Bool()
 	return val
 }
 
-func (s *DefaultAuthRepository) getRedisInvalidTokenKey(rawToken string) string {
+func (s *dbAuthRepository) getRedisInvalidTokenKey(rawToken string) string {
 	return fmt.Sprintf("token.invalid.%s", rawToken)
 }
 

@@ -1,7 +1,7 @@
 import Container from "@mui/material/Container";
 import * as React from "react";
 import {useEffect, useState} from "react";
-import ProductService, {Product} from "../../src/services/ProductService";
+import ProductService, {EMPTY_PRODUCT, Product} from "../../src/services/ProductService";
 import {
     IconButton,
     Paper,
@@ -9,8 +9,7 @@ import {
     TableBody,
     TableCell,
     TableContainer,
-    TableHead, TablePagination,
-    TableRow,
+    TableHead, TableRow,
     Tooltip
 } from "@mui/material";
 import InventoryService from "../../src/services/InventoryService";
@@ -24,14 +23,10 @@ interface ProductWithInventory extends Product {
     inventory: number
 }
 
-const EMPTY_PRODUCT: ProductWithInventory = {
-    id: "",
-    name: "",
-    description: "",
-    prices: [],
-    inventory: 0,
-    images: []
-};
+const EMPTY_PRODUCT_WITH_INVENTORY: ProductWithInventory = {
+    ...EMPTY_PRODUCT,
+    inventory: 0
+}
 
 export default function Index() {
 
@@ -39,7 +34,7 @@ export default function Index() {
     const [productDialog, setProductDialog] = useState<boolean>(false);
     const [inventoryDialog, setInventoryDialog] = useState<boolean>(false);
     const [imageDialog, setImageDialog] = useState<boolean>(false);
-    const [selectedProduct, setSelectedProduct] = useState<ProductWithInventory>(EMPTY_PRODUCT);
+    const [selectedProduct, setSelectedProduct] = useState<ProductWithInventory>(EMPTY_PRODUCT_WITH_INVENTORY);
 
     const loadProducts = async () => {
         try {
@@ -62,7 +57,7 @@ export default function Index() {
                 await ProductService.postProduct(product);
             }
             await loadProducts();
-            setSelectedProduct(EMPTY_PRODUCT);
+            setSelectedProduct(EMPTY_PRODUCT_WITH_INVENTORY);
             setProductDialog(false);
         } catch (error) {
             console.error(error);
@@ -78,7 +73,7 @@ export default function Index() {
     };
 
     const handleCreateClick = () => {
-        setSelectedProduct(EMPTY_PRODUCT);
+        setSelectedProduct(EMPTY_PRODUCT_WITH_INVENTORY);
         setProductDialog(true);
     }
 
@@ -176,12 +171,10 @@ export default function Index() {
             }}/>
 
         <ImageDialog
-            key={`image-dialog-${selectedProduct.id}`}
+            key={`image-dialog-${selectedProduct.id}}`}
             isOpen={imageDialog}
             onClose={() => setImageDialog(false)}
-            initialImages={selectedProduct.images}
-            onSave={async images => {
-            }}/>
+            product={selectedProduct}/>
 
     </Container>
 }

@@ -2,10 +2,16 @@ package helpers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"golang.org/x/exp/slog"
 	"log"
 	"net/http"
 	"os"
 )
+
+func LoadEnv() error {
+	return godotenv.Load()
+}
 
 func GetEnv(name string, fallback string) (value string) {
 	value, found := os.LookupEnv(name)
@@ -14,6 +20,12 @@ func GetEnv(name string, fallback string) (value string) {
 		value = fallback
 	}
 	return
+}
+
+func SetLogger() {
+	var programLevel = new(slog.LevelVar)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: programLevel}))
+	slog.SetDefault(logger)
 }
 
 type ENV string

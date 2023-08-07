@@ -10,10 +10,10 @@ import (
 
 type ginOrderHandler struct {
 	engine       *gin.Engine
-	orderService application.OrderService
+	orderService *application.OrderService
 }
 
-func NewGinOrderHandler(engine *gin.Engine, orderService application.OrderService) driver_ports.OrderApi {
+func NewGinOrderHandler(engine *gin.Engine, orderService *application.OrderService) driver_ports.OrderApi {
 	return &ginOrderHandler{
 		engine:       engine,
 		orderService: orderService,

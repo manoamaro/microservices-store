@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/manoamaro/microservices-store/commons/pkg/collections"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"github.com/manoamaro/microservices-store/products_service/internal/models"
@@ -18,7 +19,11 @@ type AdminProductController struct {
 	productsRepository repository.ProductsRepository
 }
 
-func NewAdminProductController(r *gin.Engine, productsRepository repository.ProductsRepository, authService infra.AuthService) *AdminProductController {
+func NewAdminProductController(
+	r *gin.Engine,
+	productsRepository repository.ProductsRepository,
+	authService infra.AuthService,
+) *AdminProductController {
 	controller := &AdminProductController{
 		authService,
 		productsRepository,
@@ -31,6 +36,7 @@ func NewAdminProductController(r *gin.Engine, productsRepository repository.Prod
 		adminGroup.GET("/:id", controller.getProductHandler)
 		adminGroup.POST("/", controller.postProductsHandler)
 		adminGroup.POST("/:id/upload", controller.postProductImageHandler)
+		adminGroup.DELETE("/:id/image/:imageId", controller.deleteProductImageHandler)
 		adminGroup.PUT("/:id", controller.putProductsHandler)
 		adminGroup.DELETE("/:id", controller.deleteProductsHandler)
 	}
@@ -41,7 +47,13 @@ func (c *AdminProductController) getProductsHandler(ctx *gin.Context) {
 	if products, err := c.productsRepository.ListProducts(); err != nil {
 		helpers.BadRequest(err, ctx)
 	} else {
-		ctx.JSON(http.StatusOK, products)
+		productsDTO := collections.MapTo[models.Product, ProductAdminDTO](
+			products,
+			func(product models.Product) ProductAdminDTO {
+				return FromProductAdmin(product, helpers.GetHost(ctx))
+			},
+		)
+		ctx.JSON(http.StatusOK, productsDTO)
 	}
 }
 
@@ -52,7 +64,7 @@ func (c *AdminProductController) getProductHandler(ctx *gin.Context) {
 	} else if product, err := c.productsRepository.GetProduct(objectID); err != nil {
 		helpers.BadRequest(err, ctx)
 	} else {
-		ctx.JSON(http.StatusOK, product)
+		ctx.JSON(http.StatusOK, FromProductAdmin(*product, helpers.GetHost(ctx)))
 	}
 }
 
@@ -63,7 +75,7 @@ func (c *AdminProductController) postProductsHandler(ctx *gin.Context) {
 	} else if savedProduct, err := c.productsRepository.InsertProduct(newProduct); err != nil {
 		helpers.BadRequest(err, ctx)
 	} else {
-		ctx.JSON(http.StatusCreated, savedProduct)
+		ctx.JSON(http.StatusCreated, FromProductAdmin(*savedProduct, helpers.GetHost(ctx)))
 	}
 }
 
@@ -85,22 +97,42 @@ func (c *AdminProductController) postProductImageHandler(ctx *gin.Context) {
 		helpers.BadRequest(err, ctx)
 	} else if product, err := c.productsRepository.GetProduct(objectID); err != nil {
 		helpers.BadRequest(err, ctx)
+	} else if form, err := ctx.MultipartForm(); err != nil {
+		helpers.BadRequest(err, ctx)
 	} else {
 		// Multipart form
-		form, _ := ctx.MultipartForm()
-		files := form.File["images[]"]
+		files := form.File["images"]
 
 		for _, file := range files {
 			log.Println(file.Filename)
 			// Upload the file to specific dst.
-			imagePath := fmt.Sprintf("uploaded/%s", uuid.New().String())
+			imageName := uuid.New().String()
+			imagePath := fmt.Sprintf("uploaded/%s", imageName)
 			if err := ctx.SaveUploadedFile(file, imagePath); err != nil {
 				helpers.BadRequest(err, ctx)
-			} else if _, err := c.productsRepository.AddImage(product.Id, imagePath); err != nil {
+			} else if s, err := c.productsRepository.AddImage(product.Id, imageName); err != nil || !s {
 				helpers.BadRequest(err, ctx)
 			}
 		}
-		ctx.Status(http.StatusCreated)
+		if updatedProduct, err := c.productsRepository.GetProduct(objectID); err != nil {
+			helpers.BadRequest(err, ctx)
+		} else {
+			ctx.JSON(http.StatusOK, FromProductAdmin(*updatedProduct, helpers.GetHost(ctx)))
+		}
+	}
+}
+
+func (c *AdminProductController) deleteProductImageHandler(ctx *gin.Context) {
+	id := ctx.Param("id")
+	imageId := ctx.Param("imageId")
+	if objectID, err := primitive.ObjectIDFromHex(id); err != nil {
+		helpers.BadRequest(err, ctx)
+	} else if s, err := c.productsRepository.DeleteImage(objectID, imageId); err != nil || !s {
+		helpers.BadRequest(err, ctx)
+	} else if updatedProduct, err := c.productsRepository.GetProduct(objectID); err != nil {
+		helpers.BadRequest(err, ctx)
+	} else {
+		ctx.JSON(http.StatusOK, FromProductAdmin(*updatedProduct, helpers.GetHost(ctx)))
 	}
 }
 
