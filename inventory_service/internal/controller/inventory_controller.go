@@ -29,7 +29,7 @@ func (a *InventoryController) RegisterRoutes() {
 	public := a.engine.Group("/public")
 	public.GET("/inventory/:product_id", a.amountOfHandler)
 
-	internal := a.engine.Group("/internal", helpers.AuthMiddleware(a.authService, "inventory"))
+	internal := a.engine.Group("/internal", infra.AuthMiddleware(a.authService, "inventory"))
 	internal.POST("/inventory/add", a.addHandler)
 	internal.POST("/inventory/subtract", a.subtractHandler)
 	internal.POST("/inventory/reserve", a.reserveHandler)

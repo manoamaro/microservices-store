@@ -44,7 +44,7 @@ func (a *Application) SetupRoutes() *gin.Engine {
 	engine := gin.Default()
 
 	// Enable CORS
-	engine.Use(cors.New(helpers.CorsConfig()))
+	engine.Use(cors.New(infra.CorsConfig()))
 
 	controller.NewProductController(engine, a.AuthService, a.ProductsRepository)
 	controller.NewAdminProductController(engine, a.ProductsRepository, a.AuthService)

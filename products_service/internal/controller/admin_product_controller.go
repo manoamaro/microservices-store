@@ -31,7 +31,7 @@ func NewAdminProductController(
 
 	adminGroup := r.Group("/admin")
 	{
-		adminGroup.Use(helpers.AuthMiddleware(authService, "products_admin"))
+		adminGroup.Use(infra.AuthMiddleware(authService, "products_admin"))
 		adminGroup.GET("/", controller.getProductsHandler)
 		adminGroup.GET("/:id", controller.getProductHandler)
 		adminGroup.POST("/", controller.postProductsHandler)
@@ -50,7 +50,7 @@ func (c *AdminProductController) getProductsHandler(ctx *gin.Context) {
 		productsDTO := collections.MapTo[models.Product, ProductAdminDTO](
 			products,
 			func(product models.Product) ProductAdminDTO {
-				return FromProductAdmin(product, helpers.GetHost(ctx))
+				return FromProductAdmin(product, infra.GetHost(ctx))
 			},
 		)
 		ctx.JSON(http.StatusOK, productsDTO)
@@ -64,7 +64,7 @@ func (c *AdminProductController) getProductHandler(ctx *gin.Context) {
 	} else if product, err := c.productsRepository.GetProduct(objectID); err != nil {
 		helpers.BadRequest(err, ctx)
 	} else {
-		ctx.JSON(http.StatusOK, FromProductAdmin(*product, helpers.GetHost(ctx)))
+		ctx.JSON(http.StatusOK, FromProductAdmin(*product, infra.GetHost(ctx)))
 	}
 }
 
@@ -75,7 +75,7 @@ func (c *AdminProductController) postProductsHandler(ctx *gin.Context) {
 	} else if savedProduct, err := c.productsRepository.InsertProduct(newProduct); err != nil {
 		helpers.BadRequest(err, ctx)
 	} else {
-		ctx.JSON(http.StatusCreated, FromProductAdmin(*savedProduct, helpers.GetHost(ctx)))
+		ctx.JSON(http.StatusCreated, FromProductAdmin(*savedProduct, infra.GetHost(ctx)))
 	}
 }
 
@@ -117,7 +117,7 @@ func (c *AdminProductController) postProductImageHandler(ctx *gin.Context) {
 		if updatedProduct, err := c.productsRepository.GetProduct(objectID); err != nil {
 			helpers.BadRequest(err, ctx)
 		} else {
-			ctx.JSON(http.StatusOK, FromProductAdmin(*updatedProduct, helpers.GetHost(ctx)))
+			ctx.JSON(http.StatusOK, FromProductAdmin(*updatedProduct, infra.GetHost(ctx)))
 		}
 	}
 }
@@ -132,7 +132,7 @@ func (c *AdminProductController) deleteProductImageHandler(ctx *gin.Context) {
 	} else if updatedProduct, err := c.productsRepository.GetProduct(objectID); err != nil {
 		helpers.BadRequest(err, ctx)
 	} else {
-		ctx.JSON(http.StatusOK, FromProductAdmin(*updatedProduct, helpers.GetHost(ctx)))
+		ctx.JSON(http.StatusOK, FromProductAdmin(*updatedProduct, infra.GetHost(ctx)))
 	}
 }
 

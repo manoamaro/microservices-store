@@ -4,8 +4,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/manoamaro/microservices-store/auth_service/internal/helpers"
 	"github.com/manoamaro/microservices-store/auth_service/internal/use_cases"
-	"github.com/manoamaro/microservices-store/auth_service/test"
-	"github.com/stretchr/testify/assert"
+	"github.com/manoamaro/microservices-store/auth_service/test/mocks"
 	"github.com/stretchr/testify/suite"
 	"strconv"
 	"testing"
@@ -13,7 +12,7 @@ import (
 
 type SignInUseCaseTestSuite struct {
 	suite.Suite
-	authRepository *test.MockAuthRepository
+	authRepository *mocks.AuthRepository
 	useCase        use_cases.SignInUseCase
 }
 
@@ -22,7 +21,7 @@ func TestSignInUseCaseTestSuite(t *testing.T) {
 }
 
 func (suite *SignInUseCaseTestSuite) SetupTest() {
-	suite.authRepository = test.NewMockAuthRepository()
+	suite.authRepository = new(mocks.AuthRepository)
 	suite.useCase = use_cases.NewSignInUseCase(suite.authRepository)
 }
 
@@ -35,13 +34,25 @@ func (suite *SignInUseCaseTestSuite) TestSignInWithValidCredentials() {
 	var domains jwt.ClaimStrings = validAuth.DomainArray()
 
 	resultDTO, err := suite.useCase.SignIn(args)
-	assert.NoError(suite.T(), err)
-	assert.NotEmpty(suite.T(), resultDTO.Token)
-	assert.NotEmpty(suite.T(), resultDTO.RefreshToken)
+	suite.NoError(err)
+	suite.NotEmpty(resultDTO.Token)
+	suite.NotEmpty(resultDTO.RefreshToken)
 	userClaims, err := helpers.GetClaimsFromToken(resultDTO.Token)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), strconv.Itoa(int(validAuth.ID)), userClaims.ID)
-	assert.Equal(suite.T(), domains, userClaims.Audience)
-	assert.Equal(suite.T(), validAuth.FlagsArray(), userClaims.Flags)
+	suite.NoError(err)
+	suite.Equal(strconv.Itoa(int(validAuth.ID)), userClaims.ID)
+	suite.Equal(domains, userClaims.Audience)
+	suite.Equal(validAuth.FlagsArray(), userClaims.Flags)
+	suite.authRepository.AssertExpectations(suite.T())
+}
+
+func (suite *SignInUseCaseTestSuite) TestSignInWithInvalidCredentials() {
+	suite.authRepository.On("Authenticate", "invalidEmail@example.com", "password").Return(nil, false).Once()
+	args := use_cases.SignInDTO{
+		Email:         "invalidEmail@example.com",
+		PlainPassword: "password",
+	}
+
+	_, err := suite.useCase.SignIn(args)
+	suite.Error(err, use_cases.ErrUserNotFound)
 	suite.authRepository.AssertExpectations(suite.T())
 }

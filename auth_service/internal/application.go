@@ -55,7 +55,7 @@ func NewApplication() *Application {
 
 	engine := gin.Default()
 	// Enable CORS
-	engine.Use(cors.New(helpers.CorsConfig()))
+	engine.Use(cors.New(infra.CorsConfig()))
 
 	authRepository := repositories.NewDBAuthRepository(db, redisClient)
 	authController := controllers.NewAuthController(

@@ -26,7 +26,7 @@ func NewProductController(r *gin.Engine, authService infra.AuthService, products
 		publicGroup.Static("/assets", "./uploaded")
 		publicGroup.GET("/", controller.listProductsHandler)
 		publicGroup.GET("/:id", controller.getProductHandler)
-		publicGroup.POST("/:id/review", helpers.AuthMiddleware(controller.authService), controller.postProductReviewHandler)
+		publicGroup.POST("/:id/review", infra.AuthMiddleware(controller.authService), controller.postProductReviewHandler)
 	}
 
 	return controller
@@ -37,7 +37,7 @@ func (c *ProductController) listProductsHandler(ctx *gin.Context) {
 		helpers.BadRequest(err, ctx)
 	} else {
 		productsDTO := lo.FilterMap[models.Product, ProductDTO](products, func(item models.Product, index int) (ProductDTO, bool) {
-			product, err := FromProduct(item, "EUR", helpers.GetHost(ctx))
+			product, err := FromProduct(item, "EUR", infra.GetHost(ctx))
 			if err != nil {
 				return ProductDTO{}, false
 			}
@@ -56,7 +56,7 @@ func (c *ProductController) getProductHandler(ctx *gin.Context) {
 	}
 	if product, err := c.productsRepository.GetProduct(objectID); err != nil {
 		helpers.BadRequest(err, ctx)
-	} else if productDTO, err := FromProduct(*product, "EUR", helpers.GetHost(ctx)); err != nil {
+	} else if productDTO, err := FromProduct(*product, "EUR", infra.GetHost(ctx)); err != nil {
 		helpers.BadRequest(err, ctx)
 	} else {
 		ctx.JSON(http.StatusOK, productDTO)
@@ -70,7 +70,7 @@ type PostProductReviewRequest struct {
 
 func (c *ProductController) postProductReviewHandler(ctx *gin.Context) {
 	productId := ctx.Param("id")
-	userId := ctx.GetString(helpers.UserId)
+	userId := ctx.GetString(infra.UserId)
 	var req PostProductReviewRequest
 	if err := ctx.BindJSON(&req); err != nil {
 		helpers.BadRequest(err, ctx)

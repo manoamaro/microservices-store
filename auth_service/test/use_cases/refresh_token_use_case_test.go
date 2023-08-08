@@ -4,7 +4,7 @@ import (
 	"github.com/manoamaro/microservices-store/auth_service/internal/helpers"
 	"github.com/manoamaro/microservices-store/auth_service/internal/use_cases"
 	"github.com/manoamaro/microservices-store/auth_service/models"
-	"github.com/manoamaro/microservices-store/auth_service/test"
+	"github.com/manoamaro/microservices-store/auth_service/test/mocks"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/gorm"
 	"strconv"
@@ -14,7 +14,7 @@ import (
 
 type RefreshTokenUseCaseTestSuite struct {
 	suite.Suite
-	authRepository *test.MockAuthRepository
+	authRepository *mocks.AuthRepository
 	useCase        use_cases.RefreshTokenUseCase
 }
 
@@ -23,7 +23,7 @@ func TestRefreshTokenUseCaseTestSuite(t *testing.T) {
 }
 
 func (suite *RefreshTokenUseCaseTestSuite) SetupTest() {
-	suite.authRepository = test.NewMockAuthRepository()
+	suite.authRepository = new(mocks.AuthRepository)
 	suite.useCase = use_cases.NewRefreshTokenUseCase(suite.authRepository)
 }
 

@@ -46,7 +46,7 @@ func NewApplication() *Application {
 
 	engine := gin.Default()
 	// Enable CORS
-	engine.Use(cors.New(helpers.CorsConfig()))
+	engine.Use(cors.New(infra.CorsConfig()))
 
 	inventoryRepository := repository.NewInventoryDBRepository(gormDB)
 	authService := infra.NewHttpAuthService(authUrl)

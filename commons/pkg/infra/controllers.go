@@ -1,4 +1,4 @@
-package helpers
+package infra
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/collections"
-	"github.com/manoamaro/microservices-store/commons/pkg/infra"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 )
 
 const (
@@ -17,14 +17,14 @@ const (
 
 var ErrNotAuthorised = errors.New("not authorised")
 
-func AuthMiddleware(authService infra.AuthService, requiredDomains ...string) func(context *gin.Context) {
+func AuthMiddleware(authService AuthService, requiredDomains ...string) func(context *gin.Context) {
 	return func(context *gin.Context) {
 		token := context.GetHeader("Authorization")
 		res, err := authService.Validate(token, requiredDomains...)
 		if err != nil {
-			UnauthorizedRequest(err, context)
+			helpers.UnauthorizedRequest(err, context)
 		} else if len(requiredDomains) > 0 && !collections.ContainsAny(requiredDomains, res.Audiences) {
-			UnauthorizedRequest(ErrNotAuthorised, context)
+			helpers.UnauthorizedRequest(ErrNotAuthorised, context)
 		} else {
 			context.Set(UserId, res.UserId)
 			context.Set(UserAudiences, res.Audiences)

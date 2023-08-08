@@ -19,6 +19,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+//go:generate mockery --name AuthRepository --case=snake --output ../../test/mocks
 type AuthRepository interface {
 	Get(id uint) (auth models.Auth, err error)
 	Create(email string, plainPassword string, audience []string, flags []string) (auth *models.Auth, err error)

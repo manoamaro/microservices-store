@@ -59,7 +59,7 @@ func NewApplication() *Application {
 
 func (a *Application) RegisterRoutes() {
 	// Enable CORS
-	a.engine.Use(cors.New(helpers.CorsConfig()))
+	a.engine.Use(cors.New(infra.CorsConfig()))
 	a.engine.Handle("GET", "/health", func(ctx *gin.Context) {
 
 		ctx.JSON(200, gin.H{"status": "ok"})
