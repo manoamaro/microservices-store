@@ -6,9 +6,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"github.com/redis/go-redis/v9"
 	"log"
-	"strconv"
 	"time"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -58,10 +58,12 @@ func (s *dbAuthRepository) Get(id uint) (auth models.Auth, err error) {
 	}
 }
 
+var ErrUserExists = errors.New("user already exists")
+
 func (s *dbAuthRepository) Create(email string, plainPassword string, audience []string, flags []string) (auth *models.Auth, err error) {
 	s.ormDB.Where(&models.Auth{Email: email}).First(&auth)
 	if auth != nil && auth.ID > 0 {
-		return nil, errors.New("user already exists")
+		return nil, ErrUserExists
 	}
 
 	var domains []models.Domain
@@ -70,10 +72,11 @@ func (s *dbAuthRepository) Create(email string, plainPassword string, audience [
 	var dbFlags []models.Flag
 	s.ormDB.Where("name IN ?", flags).Find(&flags)
 
-	salt := strconv.FormatInt(time.Now().UnixNano(), 16)
+	salt := createSalt()
+
 	auth = &models.Auth{
 		Email:    email,
-		Password: CalculatePasswordHash(plainPassword, salt),
+		Password: calculatePasswordHash(plainPassword, salt),
 		Salt:     salt,
 		Flags:    dbFlags,
 		Domains:  domains,
@@ -90,7 +93,7 @@ func (s *dbAuthRepository) Authenticate(email string, plainPassword string) (aut
 	s.ormDB.Preload(clause.Associations).Where(&models.Auth{Email: email}).First(&auth)
 	if auth.ID == 0 {
 		return nil, false
-	} else if passwordHash := CalculatePasswordHash(plainPassword, auth.Salt); passwordHash != auth.Password {
+	} else if passwordHash := calculatePasswordHash(plainPassword, auth.Salt); passwordHash != auth.Password {
 		return nil, false
 	} else {
 		return auth, true
@@ -118,10 +121,17 @@ func (s *dbAuthRepository) getRedisInvalidTokenKey(rawToken string) string {
 	return fmt.Sprintf("token.invalid.%s", rawToken)
 }
 
-func CalculatePasswordHash(plainPassword string, salt string) string {
+func calculatePasswordHash(plainPassword string, salt string) string {
 	h := sha256.New()
 	h.Write([]byte(plainPassword))
 	h.Write([]byte(salt))
 	r := fmt.Sprintf("%x", h.Sum(nil))
 	return r
+}
+
+func createSalt() string {
+	salt := helpers.GetEnv("AUTH_SALT", "salt")
+	salt = fmt.Sprintf("%s%s", salt, time.Now().String())
+	salt = fmt.Sprintf("%x", sha256.Sum256([]byte(salt)))
+	return salt
 }

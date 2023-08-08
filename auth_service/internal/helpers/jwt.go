@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/manoamaro/microservices-store/auth_service/models"
-	"os"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"strconv"
 	"time"
 )
 
+var ErrJWTInvalidPayload = errors.New("invalid payload")
+var ErrJWTInvalidToken = errors.New("invalid token")
+
 func getJWTSecret() []byte {
-	if value, exists := os.LookupEnv("JWT_SECRET"); exists {
-		return []byte(value)
-	}
-	return []byte("My Secret")
+	secretStr := helpers.GetEnv("JWT_SECRET", "My Secret")
+	return []byte(secretStr)
 }
 
 func getJWTSecretFunc(_ *jwt.Token) (interface{}, error) {
@@ -25,9 +26,10 @@ func GetClaimsFromToken(rawToken string) (*models.UserClaims, error) {
 	if token, err := jwt.ParseWithClaims(rawToken, &models.UserClaims{}, getJWTSecretFunc); err != nil {
 		return nil, err
 	} else if !token.Valid {
-		return nil, errors.New("invalid token")
+		return nil, ErrJWTInvalidToken
 	} else if userValues := token.Claims.(*models.UserClaims); userValues == nil {
-		return nil, errors.New("invalid payload")
+
+		return nil, ErrJWTInvalidPayload
 	} else {
 		return userValues, nil
 	}
@@ -37,9 +39,9 @@ func GetClaimsFromRefreshToken(rawToken string) (*jwt.RegisteredClaims, error) {
 	if token, err := jwt.ParseWithClaims(rawToken, &jwt.RegisteredClaims{}, getJWTSecretFunc); err != nil {
 		return nil, err
 	} else if !token.Valid {
-		return nil, errors.New("invalid token")
+		return nil, ErrJWTInvalidToken
 	} else if claims := token.Claims.(*jwt.RegisteredClaims); claims == nil {
-		return nil, errors.New("invalid payload")
+		return nil, ErrJWTInvalidPayload
 	} else {
 		return claims, nil
 	}

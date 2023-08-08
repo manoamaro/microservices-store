@@ -1,4 +1,4 @@
-package infra
+package cb
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ type CircuitBreaker[T any] struct {
 	lastFailure  time.Time
 }
 
-var ErrorCircuitBreakerOpen = errors.New("circuit breaker open")
+var ErrCircuitBreakerOpen = errors.New("circuit breaker open")
 
 func NewCircuitBreaker[T any](maxFailures int, resetTimeout time.Duration) *CircuitBreaker[T] {
 	return &CircuitBreaker[T]{
@@ -29,7 +29,7 @@ func (cb *CircuitBreaker[T]) Call(f func() (T, error)) (T, error) {
 	var err error
 
 	if time.Since(cb.lastFailure) < cb.resetTimeout {
-		return result, ErrorCircuitBreakerOpen
+		return result, ErrCircuitBreakerOpen
 	}
 
 	for tryAgain {

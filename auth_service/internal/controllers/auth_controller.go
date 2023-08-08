@@ -77,12 +77,12 @@ func (a *AuthController) signUpHandler(c *gin.Context) {
 }
 
 func (a *AuthController) signInHandler(c *gin.Context) {
-	request := &SignInRequest{}
-	if err := c.BindJSON(request); err != nil {
+	r := &SignInRequest{}
+	if err := c.BindJSON(r); err != nil {
 		helpers.BadRequest(err, c)
 	} else if result, err := a.signInUseCase.SignIn(use_cases.SignInDTO{
-		Email:         request.Email,
-		PlainPassword: request.Password,
+		Email:         r.Email,
+		PlainPassword: r.Password,
 	}); err != nil {
 		helpers.BadRequest(err, c)
 	} else {

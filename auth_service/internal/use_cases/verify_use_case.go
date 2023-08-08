@@ -1,7 +1,6 @@
 package use_cases
 
 import (
-	"fmt"
 	"github.com/manoamaro/microservices-store/auth_service/internal/helpers"
 	"github.com/manoamaro/microservices-store/auth_service/internal/repositories"
 )
@@ -33,7 +32,7 @@ func (v *verifyUseCase) Verify(dto VerifyDTO) (VerifyResultDTO, error) {
 	if userClaims, err := helpers.GetClaimsFromToken(dto.Token); err != nil {
 		return result, err
 	} else if v.repository.IsInvalidatedToken(dto.Token) {
-		return result, fmt.Errorf("token invalidated")
+		return result, ErrTokenInvalidated
 	} else {
 		result.ID = userClaims.ID
 		result.Audience = userClaims.Audience

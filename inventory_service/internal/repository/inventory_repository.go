@@ -9,6 +9,7 @@ import (
 
 const ReserveExpirationSeconds = 10
 
+//go:generate mockery --name InventoryRepository --case=snake --output ../../test/mocks
 type InventoryRepository interface {
 	AmountOf(productId string) (uint, error)
 	Set(productId string, amount uint) (uint, error)

@@ -1,14 +1,10 @@
 package infra
 
 import (
-	"errors"
 	"github.com/manoamaro/microservices-store/commons/pkg/collections"
+	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"net/http"
 	"time"
-)
-
-var (
-	ErrorUnauthorized = errors.New("unauthorized")
 )
 
 type AuthService interface {
@@ -50,6 +46,6 @@ func (d *httpAuthService) Validate(token string, audiences ...string) (*VerifyRe
 	} else if collections.ContainsAny(response.Audiences, audiences) {
 		return &response, nil
 	} else {
-		return nil, ErrorUnauthorized
+		return nil, helpers.ErrNotAuthorised
 	}
 }

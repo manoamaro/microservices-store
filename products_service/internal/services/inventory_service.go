@@ -6,6 +6,7 @@ import (
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 )
 
+//go:generate mockery --name InventoryService --case=snake --output ../../test/mocks
 type InventoryService interface {
 	AmountOf(productId string) (int, error)
 	Add(productId string, amount int) (int, error)

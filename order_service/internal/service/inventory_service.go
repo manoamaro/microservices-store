@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+//go:generate mockery --name InventoryService --case=snake --output ../../test/mocks
 type InventoryService interface {
 	Get(productId string) (uint, error)
 	Add(productId string, amount uint) (uint, error)

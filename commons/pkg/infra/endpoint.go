@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/manoamaro/microservices-store/commons/pkg/infra/cb"
 	"io"
 	"net/http"
 	"net/url"
@@ -15,15 +16,21 @@ type Endpoint[Res any] struct {
 	method  string
 	path    string
 	service *HttpService
-	CB      *CircuitBreaker[Res]
+	CB      *cb.CircuitBreaker[Res]
 }
 
-func NewEndpoint[T any](service *HttpService, method string, path string, maxRequests int, interval time.Duration) *Endpoint[T] {
+func NewEndpoint[T any](
+	service *HttpService,
+	method string,
+	path string,
+	maxRequests int,
+	interval time.Duration,
+) *Endpoint[T] {
 	return &Endpoint[T]{
 		method:  method,
 		path:    path,
 		service: service,
-		CB:      NewCircuitBreaker[T](maxRequests, interval),
+		CB:      cb.NewCircuitBreaker[T](maxRequests, interval),
 	}
 }
 

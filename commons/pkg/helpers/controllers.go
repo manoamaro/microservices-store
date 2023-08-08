@@ -15,6 +15,8 @@ const (
 	UserFlags     = "userFlags"
 )
 
+var ErrNotAuthorised = errors.New("not authorised")
+
 func AuthMiddleware(authService infra.AuthService, requiredDomains ...string) func(context *gin.Context) {
 	return func(context *gin.Context) {
 		token := context.GetHeader("Authorization")
@@ -22,7 +24,7 @@ func AuthMiddleware(authService infra.AuthService, requiredDomains ...string) fu
 		if err != nil {
 			UnauthorizedRequest(err, context)
 		} else if len(requiredDomains) > 0 && !collections.ContainsAny(requiredDomains, res.Audiences) {
-			UnauthorizedRequest(errors.New("not authorised"), context)
+			UnauthorizedRequest(ErrNotAuthorised, context)
 		} else {
 			context.Set(UserId, res.UserId)
 			context.Set(UserAudiences, res.Audiences)

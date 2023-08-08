@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+//go:generate mockery --name ProductsRepository --case=snake --output ../../test/mocks
 type ProductsRepository interface {
 	ListProducts() ([]models.Product, error)
 	SearchProducts(query string) ([]models.Product, error)

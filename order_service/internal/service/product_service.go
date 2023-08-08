@@ -17,6 +17,7 @@ type PriceDTO struct {
 	Price    int    `json:"price"`
 }
 
+//go:generate mockery --name ProductService --case=snake --output ../../test/mocks
 type ProductService interface {
 	Get(productId string) (ProductDTO, error)
 }
