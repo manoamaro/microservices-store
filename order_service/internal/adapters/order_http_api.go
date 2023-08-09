@@ -1,26 +1,26 @@
-package driver_adapters
+package adapters
 
 import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/order_service/internal/core/application"
-	driver_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports/driver"
+	driver_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports"
 	"strconv"
 )
 
-type ginOrderHandler struct {
+type httpOrderApi struct {
 	engine       *gin.Engine
 	orderService *application.OrderService
 }
 
-func NewGinOrderHandler(engine *gin.Engine, orderService *application.OrderService) driver_ports.OrderApi {
-	return &ginOrderHandler{
+func NewHttpOrderApi(engine *gin.Engine, orderService *application.OrderService) driver_ports.OrderApi {
+	return &httpOrderApi{
 		engine:       engine,
 		orderService: orderService,
 	}
 }
 
-func (handler *ginOrderHandler) GetOrderHandler(c context.Context) {
+func (handler *httpOrderApi) GetOrderHandler(c context.Context) {
 	ctx := c.Value("ginContext").(*gin.Context)
 	if orderId, err := strconv.Atoi(ctx.Param("order_id")); err != nil {
 		ctx.JSON(400, gin.H{"error": "invalid order id"})

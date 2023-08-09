@@ -3,6 +3,7 @@ package internal
 import (
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
@@ -66,7 +67,7 @@ func NewApplication() *Application {
 }
 
 func (a *Application) RunMigrations() {
-	if err := a.migrator.Up(); err != nil && err != migrate.ErrNoChange {
+	if err := a.migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatal(err)
 	}
 }

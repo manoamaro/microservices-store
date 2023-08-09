@@ -1,24 +1,17 @@
-package service
+package adapters
 
 import (
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
+	"github.com/manoamaro/microservices-store/order_service/internal/core/ports"
 	"net/http"
 )
-
-//go:generate mockery --name InventoryService --case=snake --output ../../test/mocks
-type InventoryService interface {
-	Get(productId string) (uint, error)
-	Add(productId string, amount uint) (uint, error)
-	Subtract(productId string, amount uint) (uint, error)
-	Reserve(cartId string, productId string, amount uint) (uint, error)
-}
 
 type httpInventoryService struct {
 	*infra.HttpService
 	reserveEndpoint *infra.Endpoint[uint]
 }
 
-func NewHttpInventoryService(host string) InventoryService {
+func NewHttpInventoryService(host string) ports.InventoryService {
 	service := infra.NewHttpService(host)
 	return &httpInventoryService{
 		HttpService:     service,

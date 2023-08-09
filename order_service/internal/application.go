@@ -2,15 +2,15 @@ package internal
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
-	driven2 "github.com/manoamaro/microservices-store/order_service/internal/adapters/driven"
-	driver_adapters "github.com/manoamaro/microservices-store/order_service/internal/adapters/driver"
+	"github.com/manoamaro/microservices-store/order_service/internal/adapters"
 	"github.com/manoamaro/microservices-store/order_service/internal/core/application"
-	driven_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports/driven"
-	driver_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports/driver"
+	"github.com/manoamaro/microservices-store/order_service/internal/core/ports"
+	"golang.org/x/exp/slog"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -25,35 +25,45 @@ import (
 var migrationsFS embed.FS
 
 type Application struct {
-	engine          *gin.Engine
-	orderRepository driven_ports.OrderRepository
-	orderApi        driver_ports.OrderApi
-	migrator        infra.Migrator
+	engine           *gin.Engine
+	orderRepository  ports.OrderRepository
+	authService      infra.AuthService
+	inventoryService ports.InventoryService
+	productService   ports.ProductService
+	orderApi         ports.OrderApi
+	migrator         infra.Migrator
 }
 
 func NewApplication() *Application {
 	postgresUrl := helpers.GetEnv("POSTGRES_URL", "postgres://postgres:postgres@localhost:5432/order_service?sslmode=disable")
-	//authUrl := helpers.GetEnv("AUTH_SERVICE_URL", "http://localhost:8080")
-	//inventoryUrl := helpers.GetEnv("INVENTORY_SERVICE_URL", "http://localhost:8080")
+	authUrl := helpers.GetEnv("AUTH_SERVICE_URL", "http://localhost:8080")
+	inventoryUrl := helpers.GetEnv("INVENTORY_SERVICE_URL", "http://localhost:8080")
+	productUrl := helpers.GetEnv("PRODUCT_SERVICE_URL", "http://localhost:8080")
 
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		DSN: postgresUrl,
 	}), &gorm.Config{})
 
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("error connecting to DB", "error", err)
 	}
 
 	engine := gin.Default()
 
-	orderRepository, _ := driven2.NewOrderESRepository(gormDB)
+	orderRepository, _ := adapters.NewDBOrderRepository(gormDB)
 	orderService := application.NewOrderService(orderRepository)
+	authService := infra.NewHttpAuthService(authUrl)
+	inventoryService := adapters.NewHttpInventoryService(inventoryUrl)
+	productService := adapters.NewHttpProductService(productUrl)
 
 	return &Application{
-		engine:          engine,
-		migrator:        infra.NewMigrator(postgresUrl, migrationsFS),
-		orderRepository: orderRepository,
-		orderApi:        driver_adapters.NewGinOrderHandler(engine, orderService),
+		engine:           engine,
+		migrator:         infra.NewMigrator(postgresUrl, migrationsFS),
+		orderRepository:  orderRepository,
+		orderApi:         adapters.NewHttpOrderApi(engine, orderService),
+		authService:      authService,
+		inventoryService: inventoryService,
+		productService:   productService,
 	}
 }
 
@@ -67,7 +77,7 @@ func (a *Application) RegisterRoutes() {
 }
 
 func (a *Application) RunMigrations() {
-	if err := a.migrator.Up(); err != nil && err != migrate.ErrNoChange {
+	if err := a.migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatal(err)
 	}
 }

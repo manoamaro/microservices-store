@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Order Service" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="microservices-store" />
+    <working_directory value="$PROJECT_DIR$/order_service" />
+    <kind value="PACKAGE" />
+    <package value="github.com/manoamaro/microservices-store/order_service/cmd" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/../microservices-store|$PROJECT_DIR$/order_service/cmd/" />
+    <method v="2" />
+  </configuration>
+</component>

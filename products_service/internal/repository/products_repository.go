@@ -22,21 +22,21 @@ type ProductsRepository interface {
 	CreateReview(productHexId string, userId string, rating int, comment string) (*models.Review, error)
 }
 
-type DefaultProductsRepository struct {
+type mongoDBProductsRepository struct {
 	context context.Context
 	col     *mongo.Collection
 }
 
 const ProductsCollection string = "Products"
 
-func NewDefaultProductsRepository(db *mongo.Database) ProductsRepository {
-	return &DefaultProductsRepository{
+func NewMongoDBProductsRepository(db *mongo.Database) ProductsRepository {
+	return &mongoDBProductsRepository{
 		context: context.Background(),
 		col:     db.Collection(ProductsCollection),
 	}
 }
 
-func (d *DefaultProductsRepository) ListProducts() ([]models.Product, error) {
+func (d *mongoDBProductsRepository) ListProducts() ([]models.Product, error) {
 	cursor, err := d.col.Find(d.context, bson.D{})
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (d *DefaultProductsRepository) ListProducts() ([]models.Product, error) {
 	return result, nil
 }
 
-func (d *DefaultProductsRepository) SearchProducts(query string) ([]models.Product, error) {
+func (d *mongoDBProductsRepository) SearchProducts(query string) ([]models.Product, error) {
 	q := bson.D{{
 		Key: "$text", Value: bson.M{
 			"$search": query,
@@ -68,7 +68,7 @@ func (d *DefaultProductsRepository) SearchProducts(query string) ([]models.Produ
 	}
 }
 
-func (d *DefaultProductsRepository) GetProduct(id primitive.ObjectID) (*models.Product, error) {
+func (d *mongoDBProductsRepository) GetProduct(id primitive.ObjectID) (*models.Product, error) {
 	res := d.col.FindOne(d.context, bson.M{"_id": id})
 	result := &models.Product{}
 	if err := res.Decode(result); err != nil {
@@ -78,7 +78,7 @@ func (d *DefaultProductsRepository) GetProduct(id primitive.ObjectID) (*models.P
 	}
 }
 
-func (d *DefaultProductsRepository) DeleteProduct(id primitive.ObjectID) (bool, error) {
+func (d *mongoDBProductsRepository) DeleteProduct(id primitive.ObjectID) (bool, error) {
 	if res, err := d.col.DeleteOne(d.context, bson.M{"_id": id}); err != nil {
 		return false, err
 	} else {
@@ -86,7 +86,7 @@ func (d *DefaultProductsRepository) DeleteProduct(id primitive.ObjectID) (bool, 
 	}
 }
 
-func (d *DefaultProductsRepository) InsertProduct(product models.Product) (*models.Product, error) {
+func (d *mongoDBProductsRepository) InsertProduct(product models.Product) (*models.Product, error) {
 	if res, err := d.col.InsertOne(d.context, product); err != nil {
 		return nil, err
 	} else {
@@ -96,7 +96,7 @@ func (d *DefaultProductsRepository) InsertProduct(product models.Product) (*mode
 	}
 }
 
-func (d *DefaultProductsRepository) UpdateProduct(product models.Product) (bool, error) {
+func (d *mongoDBProductsRepository) UpdateProduct(product models.Product) (bool, error) {
 	if res, err := d.col.ReplaceOne(d.context, bson.M{"_id": product.Id}, product); err != nil {
 		return false, err
 	} else {
@@ -104,7 +104,7 @@ func (d *DefaultProductsRepository) UpdateProduct(product models.Product) (bool,
 	}
 }
 
-func (d *DefaultProductsRepository) AddImage(id primitive.ObjectID, imagePath string) (bool, error) {
+func (d *mongoDBProductsRepository) AddImage(id primitive.ObjectID, imagePath string) (bool, error) {
 	update := primitive.A{
 		primitive.M{
 			"$set": primitive.M{
@@ -122,7 +122,7 @@ func (d *DefaultProductsRepository) AddImage(id primitive.ObjectID, imagePath st
 	}
 }
 
-func (d *DefaultProductsRepository) DeleteImage(id primitive.ObjectID, imageId string) (bool, error) {
+func (d *mongoDBProductsRepository) DeleteImage(id primitive.ObjectID, imageId string) (bool, error) {
 	update := primitive.A{
 		primitive.M{
 			"$set": primitive.M{
@@ -142,7 +142,7 @@ func (d *DefaultProductsRepository) DeleteImage(id primitive.ObjectID, imageId s
 	}
 }
 
-func (d *DefaultProductsRepository) CreateReview(productHexId string, userId string, rating int, comment string) (*models.Review, error) {
+func (d *mongoDBProductsRepository) CreateReview(productHexId string, userId string, rating int, comment string) (*models.Review, error) {
 	if productId, err := primitive.ObjectIDFromHex(productHexId); err != nil {
 		return nil, err
 	} else if product, err := d.GetProduct(productId); err != nil {

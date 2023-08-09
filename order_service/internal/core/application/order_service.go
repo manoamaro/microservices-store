@@ -3,14 +3,14 @@ package application
 import (
 	"github.com/manoamaro/microservices-store/commons/pkg/collections"
 	"github.com/manoamaro/microservices-store/order_service/internal/core/domain"
-	driven_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports/driven"
+	drivenports "github.com/manoamaro/microservices-store/order_service/internal/core/ports"
 )
 
 type OrderService struct {
-	orderRepository driven_ports.OrderRepository
+	orderRepository drivenports.OrderRepository
 }
 
-func NewOrderService(orderRepository driven_ports.OrderRepository) *OrderService {
+func NewOrderService(orderRepository drivenports.OrderRepository) *OrderService {
 	return &OrderService{orderRepository: orderRepository}
 }
 

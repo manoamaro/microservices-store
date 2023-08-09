@@ -12,24 +12,27 @@ import (
 )
 
 type ProductController struct {
+	engine             *gin.Engine
 	authService        infra.AuthService
 	productsRepository repository.ProductsRepository
 }
 
-func NewProductController(r *gin.Engine, authService infra.AuthService, productsRepository repository.ProductsRepository) *ProductController {
-	controller := &ProductController{
-		authService,
-		productsRepository,
-	}
-	publicGroup := r.Group("/public")
+func (c *ProductController) RegisterRoutes() {
+	publicGroup := c.engine.Group("/public")
 	{
 		publicGroup.Static("/assets", "./uploaded")
-		publicGroup.GET("/", controller.listProductsHandler)
-		publicGroup.GET("/:id", controller.getProductHandler)
-		publicGroup.POST("/:id/review", infra.AuthMiddleware(controller.authService), controller.postProductReviewHandler)
+		publicGroup.GET("/", c.listProductsHandler)
+		publicGroup.GET("/:id", c.getProductHandler)
+		publicGroup.POST("/:id/review", infra.AuthMiddleware(c.authService), c.postProductReviewHandler)
 	}
+}
 
-	return controller
+func NewProductController(r *gin.Engine, authService infra.AuthService, productsRepository repository.ProductsRepository) *ProductController {
+	return &ProductController{
+		engine:             r,
+		authService:        authService,
+		productsRepository: productsRepository,
+	}
 }
 
 func (c *ProductController) listProductsHandler(ctx *gin.Context) {

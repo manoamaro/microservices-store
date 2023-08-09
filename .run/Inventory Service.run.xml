@@ -1,16 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-    <configuration default="false" name="Inventory Service" type="GoApplicationRunConfiguration"
-                   factoryName="Go Application">
-        <module name="microservices-store"/>
-        <working_directory value="$PROJECT_DIR$"/>
-        <envs>
-            <env name="PORT" value="8081"/>
-            <env name="AUTH_SERVICE_URL" value="http://localhost:8080"/>
-        </envs>
-        <kind value="PACKAGE"/>
-        <package value="github.com/manoamaro/microservices-store/inventory_service/cmd"/>
-        <directory value="$PROJECT_DIR$"/>
-        <filePath value="$PROJECT_DIR$/inventory_service/cmd/main.go"/>
-        <method v="2"/>
-    </configuration>
+  <configuration default="false" name="Inventory Service" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="microservices-store" />
+    <working_directory value="$PROJECT_DIR$/inventory_service" />
+    <kind value="PACKAGE" />
+    <package value="github.com/manoamaro/microservices-store/inventory_service/cmd" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/inventory_service/cmd/main.go" />
+    <method v="2" />
+  </configuration>
 </component>

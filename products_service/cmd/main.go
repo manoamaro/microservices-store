@@ -1,30 +1,20 @@
 package main
 
 import (
-	"fmt"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"github.com/manoamaro/microservices-store/products_service/internal"
+	"golang.org/x/exp/slog"
 	"log"
-	"net/http"
-	"time"
 )
 
 func main() {
+	helpers.SetLogger()
+	if err := helpers.LoadEnv(); err != nil {
+		slog.Error("Error loading .env file: %s", err.Error())
+	}
 
 	application := internal.NewApplication()
-
-	r := application.SetupRoutes()
-
-	port := helpers.GetEnv("PORT", "8080")
-
-	srv := &http.Server{
-		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler:      r,
-	}
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal(err)
-	}
+	err := make(chan error)
+	application.Run(err)
+	log.Fatal(<-err)
 }

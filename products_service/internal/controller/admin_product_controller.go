@@ -15,32 +15,31 @@ import (
 )
 
 type AdminProductController struct {
+	engine             *gin.Engine
 	authService        infra.AuthService
 	productsRepository repository.ProductsRepository
 }
 
-func NewAdminProductController(
-	r *gin.Engine,
-	productsRepository repository.ProductsRepository,
-	authService infra.AuthService,
-) *AdminProductController {
-	controller := &AdminProductController{
-		authService,
-		productsRepository,
-	}
-
-	adminGroup := r.Group("/admin")
+func (c *AdminProductController) RegisterRoutes() {
+	adminGroup := c.engine.Group("/admin")
 	{
-		adminGroup.Use(infra.AuthMiddleware(authService, "products_admin"))
-		adminGroup.GET("/", controller.getProductsHandler)
-		adminGroup.GET("/:id", controller.getProductHandler)
-		adminGroup.POST("/", controller.postProductsHandler)
-		adminGroup.POST("/:id/upload", controller.postProductImageHandler)
-		adminGroup.DELETE("/:id/image/:imageId", controller.deleteProductImageHandler)
-		adminGroup.PUT("/:id", controller.putProductsHandler)
-		adminGroup.DELETE("/:id", controller.deleteProductsHandler)
+		adminGroup.Use(infra.AuthMiddleware(c.authService, "products_admin"))
+		adminGroup.GET("/", c.getProductsHandler)
+		adminGroup.GET("/:id", c.getProductHandler)
+		adminGroup.POST("/", c.postProductsHandler)
+		adminGroup.POST("/:id/upload", c.postProductImageHandler)
+		adminGroup.DELETE("/:id/image/:imageId", c.deleteProductImageHandler)
+		adminGroup.PUT("/:id", c.putProductsHandler)
+		adminGroup.DELETE("/:id", c.deleteProductsHandler)
 	}
-	return controller
+}
+
+func NewAdminProductController(r *gin.Engine, productsRepository repository.ProductsRepository, authService infra.AuthService) *AdminProductController {
+	return &AdminProductController{
+		engine:             r,
+		authService:        authService,
+		productsRepository: productsRepository,
+	}
 }
 
 func (c *AdminProductController) getProductsHandler(ctx *gin.Context) {
