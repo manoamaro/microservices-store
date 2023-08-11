@@ -2,8 +2,8 @@ package adapters
 
 import (
 	"context"
-	"github.com/manoamaro/microservices-store/order_service/internal/core/domain"
-	drivenports "github.com/manoamaro/microservices-store/order_service/internal/core/ports"
+	"github.com/manoamaro/microservices-store/order_service/internal/domain"
+	drivenports "github.com/manoamaro/microservices-store/order_service/internal/ports"
 	"gorm.io/gorm"
 )
 

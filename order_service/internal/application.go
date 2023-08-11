@@ -8,8 +8,8 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"github.com/manoamaro/microservices-store/order_service/internal/adapters"
-	"github.com/manoamaro/microservices-store/order_service/internal/core/application"
-	"github.com/manoamaro/microservices-store/order_service/internal/core/ports"
+	"github.com/manoamaro/microservices-store/order_service/internal/application"
+	ports2 "github.com/manoamaro/microservices-store/order_service/internal/ports"
 	"golang.org/x/exp/slog"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -26,11 +26,11 @@ var migrationsFS embed.FS
 
 type Application struct {
 	engine           *gin.Engine
-	orderRepository  ports.OrderRepository
+	orderRepository  ports2.OrderRepository
 	authService      infra.AuthService
-	inventoryService ports.InventoryService
-	productService   ports.ProductService
-	orderApi         ports.OrderApi
+	inventoryService ports2.InventoryService
+	productService   ports2.ProductService
+	orderApi         ports2.OrderApi
 	migrator         infra.Migrator
 }
 
@@ -70,10 +70,9 @@ func NewApplication() *Application {
 func (a *Application) RegisterRoutes() {
 	// Enable CORS
 	a.engine.Use(cors.New(infra.CorsConfig()))
-	a.engine.Handle("GET", "/health", func(ctx *gin.Context) {
-
-		ctx.JSON(200, gin.H{"status": "ok"})
-	})
+	a.engine.GET("/health", infra.HealthHandler(func() error {
+		return nil
+	}))
 }
 
 func (a *Application) RunMigrations() {

@@ -1,21 +1,21 @@
 package adapters
 
 import (
-	"github.com/manoamaro/microservices-store/commons/pkg/infra"
-	"github.com/manoamaro/microservices-store/order_service/internal/core/ports"
+	"github.com/manoamaro/microservices-store/commons/pkg/http_client"
+	"github.com/manoamaro/microservices-store/order_service/internal/ports"
 	"net/http"
 )
 
 type httpInventoryService struct {
-	*infra.HttpService
-	reserveEndpoint *infra.Endpoint[uint]
+	*http_client.HttpClient
+	reserveEndpoint *http_client.Endpoint[InventoryVerifyRequest, uint]
 }
 
 func NewHttpInventoryService(host string) ports.InventoryService {
-	service := infra.NewHttpService(host)
+	service := http_client.NewHttpClient(host)
 	return &httpInventoryService{
-		HttpService:     service,
-		reserveEndpoint: infra.NewEndpoint[uint](service, http.MethodPost, "/public/reserve", 10, 1000),
+		HttpClient:      service,
+		reserveEndpoint: http_client.NewEndpoint[InventoryVerifyRequest, uint](service, http.MethodPost, "/public/reserve", 10, 1000),
 	}
 }
 
@@ -35,11 +35,7 @@ func (h *httpInventoryService) Subtract(productId string, amount uint) (uint, er
 }
 
 func (h *httpInventoryService) Reserve(cartId string, productId string, amount uint) (uint, error) {
-	req := struct {
-		ProductId string `json:"product_id"`
-		CartId    string `json:"cart_id"`
-		Amount    uint   `json:"amount"`
-	}{
+	req := InventoryVerifyRequest{
 		ProductId: productId,
 		CartId:    cartId,
 		Amount:    amount,
@@ -54,4 +50,10 @@ func (h *httpInventoryService) Reserve(cartId string, productId string, amount u
 	}
 
 	return res, nil
+}
+
+type InventoryVerifyRequest struct {
+	ProductId string `json:"product_id"`
+	CartId    string `json:"cart_id"`
+	Amount    uint   `json:"amount"`
 }

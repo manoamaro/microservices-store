@@ -1,21 +1,21 @@
 package adapters
 
 import (
-	"github.com/manoamaro/microservices-store/commons/pkg/infra"
-	"github.com/manoamaro/microservices-store/order_service/internal/core/ports"
+	"github.com/manoamaro/microservices-store/commons/pkg/http_client"
+	"github.com/manoamaro/microservices-store/order_service/internal/ports"
 	"net/http"
 )
 
 type httpProductService struct {
-	infra.HttpService
-	getProductEndpoint *infra.Endpoint[ports.ProductDTO]
+	http_client.HttpClient
+	getProductEndpoint *http_client.Endpoint[any, ports.ProductDTO]
 }
 
 func NewHttpProductService(host string) ports.ProductService {
-	service := infra.NewHttpService(host)
+	service := http_client.NewHttpClient(host)
 	return &httpProductService{
-		HttpService:        *service,
-		getProductEndpoint: infra.NewEndpoint[ports.ProductDTO](service, http.MethodGet, "/public/:id", 10, 1000),
+		HttpClient:         *service,
+		getProductEndpoint: http_client.NewEndpoint[any, ports.ProductDTO](service, http.MethodGet, "/public/:id", 10, 1000),
 	}
 }
 

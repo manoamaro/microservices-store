@@ -2,6 +2,7 @@ package infra
 
 import (
 	"github.com/manoamaro/microservices-store/commons/pkg/collections"
+	"github.com/manoamaro/microservices-store/commons/pkg/http_client"
 	"net/http"
 	"time"
 )
@@ -17,13 +18,13 @@ type VerifyResponse struct {
 }
 
 type httpAuthService struct {
-	verifyEndpoint *Endpoint[VerifyResponse]
+	verifyEndpoint *http_client.Endpoint[any, VerifyResponse]
 }
 
 func NewHttpAuthService(host string) AuthService {
-	service := NewHttpService(host)
+	service := http_client.NewHttpClient(host)
 	return &httpAuthService{
-		verifyEndpoint: NewEndpoint[VerifyResponse](
+		verifyEndpoint: http_client.NewEndpoint[any, VerifyResponse](
 			service,
 			http.MethodGet,
 			"/public/verify",

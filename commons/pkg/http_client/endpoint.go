@@ -1,10 +1,10 @@
-package infra
+package http_client
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/manoamaro/microservices-store/commons/pkg/infra/cb"
+	"github.com/manoamaro/microservices-store/commons/pkg/cb"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,75 +12,78 @@ import (
 	"time"
 )
 
-type Endpoint[Res any] struct {
+type Endpoint[Req any, Res any] struct {
 	method  string
 	path    string
-	service *HttpService
+	service *HttpClient
 	CB      *cb.CircuitBreaker[Res]
 }
 
-func NewEndpoint[T any](
-	service *HttpService,
+func NewEndpoint[Req any, Res any](
+	service *HttpClient,
 	method string,
 	path string,
 	maxRequests int,
 	interval time.Duration,
-) *Endpoint[T] {
-	return &Endpoint[T]{
+) *Endpoint[Req, Res] {
+	return &Endpoint[Req, Res]{
 		method:  method,
 		path:    path,
 		service: service,
-		CB:      cb.NewCircuitBreaker[T](maxRequests, interval),
+		CB:      cb.NewCircuitBreaker[Res](maxRequests, interval),
 	}
 }
 
-type RequestEndpointCommand[Res any] struct {
-	*Endpoint[Res]
+type RequestEndpointCommand[Req, Res any] struct {
+	*Endpoint[Req, Res]
 	headers     map[string]string
 	queryParams map[string]string
 	pathParams  map[string]string
-	body        any
+	body        Req
+	hasBody     bool
 }
 
-func (e *Endpoint[Res]) Start() *RequestEndpointCommand[Res] {
-	return &RequestEndpointCommand[Res]{
+func (e *Endpoint[Req, Res]) Start() *RequestEndpointCommand[Req, Res] {
+	return &RequestEndpointCommand[Req, Res]{
 		Endpoint:    e,
 		headers:     map[string]string{},
 		queryParams: map[string]string{},
 		pathParams:  map[string]string{},
+		hasBody:     false,
 	}
 }
 
-func (e *RequestEndpointCommand[Res]) WithHeader(key, value string) *RequestEndpointCommand[Res] {
+func (e *RequestEndpointCommand[Req, Res]) WithHeader(key, value string) *RequestEndpointCommand[Req, Res] {
 	e.headers[key] = value
 	return e
 }
 
-func (e *RequestEndpointCommand[Res]) WithAuthorization(token string) *RequestEndpointCommand[Res] {
+func (e *RequestEndpointCommand[Req, Res]) WithAuthorization(token string) *RequestEndpointCommand[Req, Res] {
 	e.WithHeader("Authorization", token)
 	return e
 }
 
-func (e *RequestEndpointCommand[Res]) WithQueryParam(key, value string) *RequestEndpointCommand[Res] {
+func (e *RequestEndpointCommand[Req, Res]) WithQueryParam(key, value string) *RequestEndpointCommand[Req, Res] {
 	e.queryParams[key] = value
 	return e
 }
 
-func (e *RequestEndpointCommand[Res]) WithPathParam(name, value string) *RequestEndpointCommand[Res] {
+func (e *RequestEndpointCommand[Req, Res]) WithPathParam(name, value string) *RequestEndpointCommand[Req, Res] {
 	e.pathParams[name] = value
 	return e
 }
 
-func (e *RequestEndpointCommand[Res]) WithBody(body any) *RequestEndpointCommand[Res] {
+func (e *RequestEndpointCommand[Req, Res]) WithBody(body Req) *RequestEndpointCommand[Req, Res] {
 	e.body = body
+	e.hasBody = true
 	return e
 }
 
-func (e *RequestEndpointCommand[Res]) Execute() (Res, error) {
+func (e *RequestEndpointCommand[Req, Res]) Execute() (Res, error) {
 	var reqBody []byte
 	var response Res
 
-	if e.body != nil {
+	if e.hasBody {
 		if _reqBody, err := json.Marshal(e.body); err != nil {
 			return response, err
 		} else {

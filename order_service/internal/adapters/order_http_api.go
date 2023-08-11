@@ -3,8 +3,8 @@ package adapters
 import (
 	"context"
 	"github.com/gin-gonic/gin"
-	"github.com/manoamaro/microservices-store/order_service/internal/core/application"
-	driver_ports "github.com/manoamaro/microservices-store/order_service/internal/core/ports"
+	"github.com/manoamaro/microservices-store/order_service/internal/application"
+	driver_ports "github.com/manoamaro/microservices-store/order_service/internal/ports"
 	"strconv"
 )
 

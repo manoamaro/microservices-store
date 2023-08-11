@@ -21,16 +21,16 @@ type AdminProductController struct {
 }
 
 func (c *AdminProductController) RegisterRoutes() {
-	adminGroup := c.engine.Group("/admin")
+	internal := c.engine.Group("/")
 	{
-		adminGroup.Use(infra.AuthMiddleware(c.authService, "products_admin"))
-		adminGroup.GET("/", c.getProductsHandler)
-		adminGroup.GET("/:id", c.getProductHandler)
-		adminGroup.POST("/", c.postProductsHandler)
-		adminGroup.POST("/:id/upload", c.postProductImageHandler)
-		adminGroup.DELETE("/:id/image/:imageId", c.deleteProductImageHandler)
-		adminGroup.PUT("/:id", c.putProductsHandler)
-		adminGroup.DELETE("/:id", c.deleteProductsHandler)
+		internal.Use(infra.AuthMiddleware(c.authService, "products_admin"))
+		internal.GET("/", c.getProductsHandler)
+		internal.GET("/:id", c.getProductHandler)
+		internal.POST("/", c.postProductsHandler)
+		internal.POST("/:id/upload", c.postProductImageHandler)
+		internal.DELETE("/:id/image/:imageId", c.deleteProductImageHandler)
+		internal.PUT("/:id", c.putProductsHandler)
+		internal.DELETE("/:id", c.deleteProductsHandler)
 	}
 }
 

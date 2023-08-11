@@ -2,8 +2,8 @@ package application
 
 import (
 	"github.com/manoamaro/microservices-store/commons/pkg/collections"
-	"github.com/manoamaro/microservices-store/order_service/internal/core/domain"
-	drivenports "github.com/manoamaro/microservices-store/order_service/internal/core/ports"
+	domain2 "github.com/manoamaro/microservices-store/order_service/internal/domain"
+	drivenports "github.com/manoamaro/microservices-store/order_service/internal/ports"
 )
 
 type OrderService struct {
@@ -22,9 +22,9 @@ func (s *OrderService) GetOrder(id uint) (*Order, error) {
 	}
 }
 
-func toDTO(dbOrder domain.Order) *Order {
+func toDTO(dbOrder domain2.Order) *Order {
 	cart := Cart{
-		Items: collections.MapTo(dbOrder.Items, func(i domain.OrderItem) CartItem {
+		Items: collections.MapTo(dbOrder.Items, func(i domain2.OrderItem) CartItem {
 			return CartItem{
 				ProductId: i.ProductId,
 				Quantity:  i.Quantity,

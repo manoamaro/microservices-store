@@ -87,6 +87,9 @@ func (a *Application) Run(c chan error) {
 	for _, _controller := range a.controllers {
 		_controller.RegisterRoutes()
 	}
+	a.engine.GET("/health", infra.HealthHandler(func() error {
+		return nil
+	}))
 
 	port := helpers.GetEnv("PORT", "8080")
 
