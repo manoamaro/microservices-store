@@ -1,10 +1,11 @@
 package main
 
 import (
+	"log"
+	"log/slog"
+
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
 	"github.com/manoamaro/microservices-store/order_service/internal"
-	"golang.org/x/exp/slog"
-	"log"
 )
 
 func main() {

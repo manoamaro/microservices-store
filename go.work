@@ -1,0 +1,9 @@
+go 1.21.0
+
+use (
+	./commons
+	./auth_service
+	./inventory_service
+	./order_service
+	./products_service
+)

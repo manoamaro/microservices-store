@@ -4,18 +4,19 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"log"
+	"log/slog"
+	"net/http"
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/manoamaro/microservices-store/commons/pkg/infra"
 	"github.com/manoamaro/microservices-store/order_service/internal/adapters"
 	"github.com/manoamaro/microservices-store/order_service/internal/application"
-	ports2 "github.com/manoamaro/microservices-store/order_service/internal/ports"
-	"golang.org/x/exp/slog"
+	"github.com/manoamaro/microservices-store/order_service/internal/ports"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
@@ -26,11 +27,11 @@ var migrationsFS embed.FS
 
 type Application struct {
 	engine           *gin.Engine
-	orderRepository  ports2.OrderRepository
+	orderRepository  ports.OrderRepository
 	authService      infra.AuthService
-	inventoryService ports2.InventoryService
-	productService   ports2.ProductService
-	orderApi         ports2.OrderApi
+	inventoryService ports.InventoryService
+	productService   ports.ProductService
+	orderApi         ports.OrderApi
 	migrator         infra.Migrator
 }
 

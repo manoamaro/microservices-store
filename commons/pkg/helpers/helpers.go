@@ -1,12 +1,13 @@
 package helpers
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-	"golang.org/x/exp/slog"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func LoadEnv() error {

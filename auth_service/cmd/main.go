@@ -1,9 +1,10 @@
 package main
 
 import (
+	"log/slog"
+
 	"github.com/manoamaro/microservices-store/auth_service/internal"
 	"github.com/manoamaro/microservices-store/commons/pkg/helpers"
-	"golang.org/x/exp/slog"
 )
 
 func main() {
